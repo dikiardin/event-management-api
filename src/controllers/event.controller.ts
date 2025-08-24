@@ -20,7 +20,8 @@ export default class EventController {
 
   getAll = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const events = await this.eventService.getEvents();
+      const { category } = req.query; // get query param
+      const events = await this.eventService.getEvents(category as string | undefined);
       res.status(200).json({ success: true, data: events });
     } catch (error) {
       next(error);

@@ -28,8 +28,8 @@ export default class EventService {
     });
   }
 
-  async getEvents() {
-    return this.eventRepository.findAll();
+  async getEvents(category?: string) {
+    return this.eventRepository.findAll(category);
   }
 
   async getEventById(id: number) {

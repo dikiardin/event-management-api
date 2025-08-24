@@ -15,31 +15,31 @@ class EventRouter {
   }
 
   private initializeRoute(): void {
-    // 🟢 Create event (hanya ORGANIZER & ADMIN)
+    // create event (hanya ORGANIZER)
     this.route.post(
-      "/",
+      "/create",
       verifyToken,
       verifyRole([RoleType.ADMIN, RoleType.ORGANIZER]),
       this.eventController.create
     );
 
-    // 🟢 Get all events (public)
+    // get all events (public)
     this.route.get("/", this.eventController.getAll);
 
-    // 🟢 Get detail event (public)
-    this.route.get("/:id", this.eventController.getById);
+    // get detail event (public)
+    this.route.get("/detail/:id", this.eventController.getById);
 
-    // 🟢 Update event (hanya ORGANIZER & ADMIN)
+    // update event (hanya ORGANIZER)
     this.route.patch(
-      "/:id",
+      "/edit/:id",
       verifyToken,
       verifyRole([RoleType.ADMIN, RoleType.ORGANIZER]),
       this.eventController.update
     );
 
-    // 🟢 Delete event (hanya ADMIN)
+    // delete event (hanya ORGANIZER)
     this.route.delete(
-      "/:id",
+      "/delete/:id",
       verifyToken,
       verifyRole([RoleType.ADMIN, RoleType.ORGANIZER]),
       this.eventController.delete

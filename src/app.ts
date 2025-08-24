@@ -18,7 +18,10 @@ class App {
   }
 
   private configure(): void {
-    this.app.use(cors());
+    this.app.use(cors({
+      origin: process.env.FE_URL,
+      methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
+    }));
     this.app.use(express.json());
   }
   private route(): void {

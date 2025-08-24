@@ -1,12 +1,16 @@
 import { prisma } from "../config/prisma";
+import { CategoryType } from "../generated/prisma";
 
 export default class EventRepository {
   async create(data: any) {
     return await prisma.event.create({ data });
   }
 
-  async findAll() {
+  async findAll(category?: string) {
     return await prisma.event.findMany({
+      where: category
+        ? { event_category: category.toUpperCase() as CategoryType } // filter if category is provided
+        : {},
       include: {
         organizer: true,
         tickets: true,
