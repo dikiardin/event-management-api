@@ -194,8 +194,8 @@ enum RoleType {
 }
 
 enum CategoryType {
-  MUSIC
-  SPORTS
-  CONFERENCE
-  WORKSHOP
+  CONCERT
+  FESTIVAL
+  SPORT
+  THEATER
 }
