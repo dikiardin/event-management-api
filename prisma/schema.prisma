@@ -1,0 +1,201 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ---------- USER ----------
+model User {
+  id                   Int       @id @default(autoincrement())
+  username             String    @unique
+  email                String    @unique
+  password             String
+  role                 RoleType
+  referral_code        String?   @unique
+  point_last_earned_at DateTime?
+  profile_pic          String?
+  created_at           DateTime  @default(now())
+  is_verified          Boolean   @default(false)
+
+  points         Point[]
+  coupons        Coupon[]
+  transactions   Transactions[]
+  reviews        Review[]
+  eventOrganizer EventOrganizer?
+}
+
+// ---------- EVENT ORGANIZER ----------
+model EventOrganizer {
+  id                           Int     @id @default(autoincrement())
+  user_id                      Int     @unique
+  average_rating               Float   @default(0)
+  event_organizer_name         String
+  event_organizer_description  String?
+  event_organizer_bank_account String?
+
+  user   User    @relation(fields: [user_id], references: [id])
+  events Event[]
+}
+
+// ---------- EVENT ----------
+model Event {
+  id                 Int          @id @default(autoincrement())
+  event_organizer_id Int
+  event_category     CategoryType
+  event_price        Float        @default(0)
+  event_thumbnail    String?
+  event_name         String
+  event_description  String?
+  event_start_date   DateTime
+  event_end_date     DateTime
+  event_location     String
+  total_seats        Int          @default(0)
+  available_seats    Int          @default(0)
+  created_at         DateTime     @default(now())
+  updated_at         DateTime     @updatedAt
+
+  organizer EventOrganizer @relation(fields: [event_organizer_id], references: [id])
+  tickets   Ticket[]
+  vouchers  Voucher[]
+  reviews   Review[]
+}
+
+// ---------- TRANSACTIONS ----------
+model Transactions {
+  id                    Int        @id @default(autoincrement())
+  user_id               Int
+  coupon_id             Int?
+  voucher_id            Int?
+  status                StatusType
+  points_used           Int        @default(0)
+  discount_voucher      Float      @default(0)
+  discount_coupon       Float      @default(0)
+  transaction_date_time DateTime   @default(now())
+  transaction_expired   DateTime
+  is_accepted           Boolean    @default(false)
+
+  user     User                @relation(fields: [user_id], references: [id])
+  coupon   Coupon?             @relation(fields: [coupon_id], references: [id])
+  voucher  Voucher?            @relation(fields: [voucher_id], references: [id])
+  tickets  TransactionTicket[]
+  attendee Attendee[]
+}
+
+// ---------- TRANSACTION_TICKET ----------
+model TransactionTicket {
+  id             Int   @id @default(autoincrement())
+  transaction_id Int
+  ticket_id      Int
+  qty            Int
+  subtotal_price Float
+
+  transaction Transactions @relation(fields: [transaction_id], references: [id])
+  ticket      Ticket       @relation(fields: [ticket_id], references: [id])
+}
+
+// ---------- TICKET ----------
+model Ticket {
+  id            Int        @id @default(autoincrement())
+  event_id      Int
+  ticket_type   TicketType
+  price         Float
+  quota         Int
+  available_qty Int
+
+  event              Event               @relation(fields: [event_id], references: [id])
+  transactionTickets TransactionTicket[]
+}
+
+// ---------- ATTENDEE ----------
+model Attendee {
+  id             Int     @id @default(autoincrement())
+  transaction_id Int
+  is_attended    Boolean @default(false)
+
+  transaction Transactions @relation(fields: [transaction_id], references: [id])
+}
+
+// ---------- VOUCHER ----------
+model Voucher {
+  id                 Int      @id @default(autoincrement())
+  event_id           Int
+  voucher_code       String   @unique
+  discount_value     Float
+  voucher_start_date DateTime @default(now())
+  voucher_end_date   DateTime
+
+  event        Event          @relation(fields: [event_id], references: [id])
+  transactions Transactions[]
+}
+
+// ---------- COUPON ----------
+model Coupon {
+  id             Int      @id @default(autoincrement())
+  user_id        Int
+  coupon_code    String   @unique
+  discount_value Float
+  created_at     DateTime @default(now())
+
+  user         User           @relation(fields: [user_id], references: [id])
+  transactions Transactions[]
+}
+
+// ---------- POINT ----------
+model Point {
+  id            Int      @id @default(autoincrement())
+  user_id       Int
+  point_balance Int      @default(0)
+  point_expired DateTime
+
+  user User @relation(fields: [user_id], references: [id])
+}
+
+// ---------- REVIEW ----------
+model Review {
+  id          Int      @id @default(autoincrement())
+  event_id    Int
+  user_id     Int
+  rating      Int
+  review_text String?
+  review_date DateTime @default(now())
+
+  event Event @relation(fields: [event_id], references: [id])
+  user  User  @relation(fields: [user_id], references: [id])
+}
+
+// ---------- ENUM ----------
+enum StatusType {
+  PENDING
+  SUCCESS
+  FAILED
+}
+
+enum TicketType {
+  VIP
+  REGULAR
+  EARLY_BIRD
+}
+
+enum RoleType {
+  ADMIN
+  ORGANIZER
+  USER
+}
+
+enum CategoryType {
+  MUSIC
+  SPORTS
+  CONFERENCE
+  WORKSHOP
+}
