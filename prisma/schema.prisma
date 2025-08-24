@@ -15,7 +15,6 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-// ---------- USER ----------
 model User {
   id                   Int       @id @default(autoincrement())
   username             String    @unique
@@ -35,7 +34,6 @@ model User {
   eventOrganizer EventOrganizer?
 }
 
-// ---------- EVENT ORGANIZER ----------
 model EventOrganizer {
   id                           Int     @id @default(autoincrement())
   user_id                      Int     @unique
@@ -48,7 +46,6 @@ model EventOrganizer {
   events Event[]
 }
 
-// ---------- EVENT ----------
 model Event {
   id                 Int          @id @default(autoincrement())
   event_organizer_id Int
@@ -71,7 +68,6 @@ model Event {
   reviews   Review[]
 }
 
-// ---------- TRANSACTIONS ----------
 model Transactions {
   id                    Int        @id @default(autoincrement())
   user_id               Int
@@ -92,7 +88,6 @@ model Transactions {
   attendee Attendee[]
 }
 
-// ---------- TRANSACTION_TICKET ----------
 model TransactionTicket {
   id             Int   @id @default(autoincrement())
   transaction_id Int
@@ -104,7 +99,6 @@ model TransactionTicket {
   ticket      Ticket       @relation(fields: [ticket_id], references: [id])
 }
 
-// ---------- TICKET ----------
 model Ticket {
   id            Int        @id @default(autoincrement())
   event_id      Int
@@ -117,7 +111,6 @@ model Ticket {
   transactionTickets TransactionTicket[]
 }
 
-// ---------- ATTENDEE ----------
 model Attendee {
   id             Int     @id @default(autoincrement())
   transaction_id Int
@@ -126,7 +119,6 @@ model Attendee {
   transaction Transactions @relation(fields: [transaction_id], references: [id])
 }
 
-// ---------- VOUCHER ----------
 model Voucher {
   id                 Int      @id @default(autoincrement())
   event_id           Int
@@ -139,7 +131,6 @@ model Voucher {
   transactions Transactions[]
 }
 
-// ---------- COUPON ----------
 model Coupon {
   id             Int      @id @default(autoincrement())
   user_id        Int
@@ -151,7 +142,6 @@ model Coupon {
   transactions Transactions[]
 }
 
-// ---------- POINT ----------
 model Point {
   id            Int      @id @default(autoincrement())
   user_id       Int
@@ -161,7 +151,6 @@ model Point {
   user User @relation(fields: [user_id], references: [id])
 }
 
-// ---------- REVIEW ----------
 model Review {
   id          Int      @id @default(autoincrement())
   event_id    Int
@@ -174,7 +163,6 @@ model Review {
   user  User  @relation(fields: [user_id], references: [id])
 }
 
-// ---------- ENUM ----------
 enum StatusType {
   PENDING
   SUCCESS
