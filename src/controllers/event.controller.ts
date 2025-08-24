@@ -26,7 +26,7 @@ export default class EventController {
     } catch (error) {
       next(error);
     }
-  };
+  };  
 
   getById = async (
     req: Request<{ id: string }>,
