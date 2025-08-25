@@ -2,22 +2,15 @@ import { Request, Response, NextFunction } from "express";
 import {
   createEventService,
   getEventsService,
-  getEventByIdService,
+  getEventByTitleService,
   updateEventService,
   deleteEventService,
 } from "../service/event.service";
 
 export default class EventController {
-  public async create(req: Request, res: Response, next: NextFunction) {
+  public async createEvent(req: Request, res: Response, next: NextFunction) {
     try {
       const user = res.locals.decrypt;
-
-      if (!req.body.title || !req.body.date || !req.body.category) {
-        return res
-          .status(400)
-          .json({ success: false, message: "All fields are required" });
-      }
-
       const newEvent = await createEventService(user, req.body);
 
       return res.status(201).json({
@@ -26,14 +19,11 @@ export default class EventController {
         data: newEvent,
       });
     } catch (error: any) {
-      return res.status(error.status || 500).json({
-        success: false,
-        message: error.message || "Internal Server Error",
-      });
+      next(error);
     }
   }
 
-  public async getAll(req: Request, res: Response, next: NextFunction) {
+  public async getAllEvent(req: Request, res: Response, next: NextFunction) {
     try {
       const { category } = req.query;
 
@@ -45,24 +35,25 @@ export default class EventController {
         data: events,
       });
     } catch (error: any) {
-      return res.status(error.status || 500).json({
-        success: false,
-        message: error.message || "Internal Server Error",
-      });
+      next(error);
     }
   }
 
-  public async getById(
-    req: Request<{ id: string }>,
+  public async getEventByTitle(
+    req: Request<{ title: string }>,
     res: Response,
     next: NextFunction
   ) {
     try {
-      const id = Number(req.params.id);
-      if (isNaN(id))
-        return res.status(400).json({ success: false, message: "Invalid ID" });
+      const { title } = req.params;
 
-      const event = await getEventByIdService(id);
+      if (!title || typeof title !== "string") {
+        return res
+          .status(400)
+          .json({ success: false, message: "Invalid title" });
+      }
+
+      const event = await getEventByTitleService(title);
 
       return res.status(200).json({
         success: true,
@@ -70,14 +61,11 @@ export default class EventController {
         data: event,
       });
     } catch (error: any) {
-      return res.status(error.status || 500).json({
-        success: false,
-        message: error.message || "Internal Server Error",
-      });
+      next(error);
     }
   }
 
-  public async update(
+  public async updateEvent(
     req: Request<{ id: string }>,
     res: Response,
     next: NextFunction
@@ -95,14 +83,11 @@ export default class EventController {
         data: updatedEvent,
       });
     } catch (error: any) {
-      return res.status(error.status || 500).json({
-        success: false,
-        message: error.message || "Internal Server Error",
-      });
+      next(error);
     }
   }
 
-  public async delete(
+  public async deleteEvent(
     req: Request<{ id: string }>,
     res: Response,
     next: NextFunction
@@ -120,10 +105,7 @@ export default class EventController {
         message: "Event deleted successfully",
       });
     } catch (error: any) {
-      return res.status(error.status || 500).json({
-        success: false,
-        message: error.message || "Internal Server Error",
-      });
+      next(error);
     }
   }
 }

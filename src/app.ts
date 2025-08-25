@@ -4,6 +4,7 @@ import cors from "cors";
 import express, { Application, NextFunction, Request, Response } from "express";
 import AuthRouter from "./routers/auth.router";
 import EventRouter from "./routers/event.router";
+import VoucherRouter from "./routers/voucher.router";
 
 const PORT: string = process.env.PORT || "8181";
 
@@ -32,8 +33,10 @@ class App {
     // define route
     const authRouter: AuthRouter = new AuthRouter();
     const eventRouter: EventRouter = new EventRouter();
+    const voucherRouter: VoucherRouter = new VoucherRouter();
     this.app.use("/auth", authRouter.getRouter());
     this.app.use("/event", eventRouter.getRouter());
+    this.app.use("/voucher", voucherRouter.getRouter());
   }
 
   private errorHandling(): void {

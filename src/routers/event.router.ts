@@ -20,21 +20,21 @@ class EventRouter {
       "/create",
       verifyToken,
       verifyRole([RoleType.ORGANIZER]),
-      this.eventController.create
+      this.eventController.createEvent
     );
 
     // get all events (public)
-    this.route.get("/", this.eventController.getAll);
+    this.route.get("/", this.eventController.getAllEvent);
 
     // get detail event (public)
-    this.route.get("/detail/:id", this.eventController.getById);
+    this.route.get("/detail/:title", this.eventController.getEventByTitle);
 
     // update event (hanya ORGANIZER)
     this.route.patch(
       "/edit/:id",
       verifyToken,
       verifyRole([RoleType.ORGANIZER]),
-      this.eventController.update
+      this.eventController.updateEvent
     );
 
     // delete event (hanya ORGANIZER)
@@ -42,7 +42,7 @@ class EventRouter {
       "/delete/:id",
       verifyToken,
       verifyRole([RoleType.ORGANIZER]),
-      this.eventController.delete
+      this.eventController.deleteEvent
     );
   }
 
