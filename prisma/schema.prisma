@@ -51,9 +51,9 @@ model Event {
   event_organizer_id Int
   event_category     CategoryType
   event_price        Float        @default(0)
-  event_thumbnail    String?
+  event_thumbnail    String
   event_name         String
-  event_description  String?
+  event_description  String
   event_start_date   DateTime
   event_end_date     DateTime
   event_location     String
@@ -172,11 +172,9 @@ enum StatusType {
 enum TicketType {
   VIP
   REGULAR
-  EARLY_BIRD
 }
 
 enum RoleType {
-  ADMIN
   ORGANIZER
   USER
 }
