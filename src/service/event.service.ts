@@ -1,6 +1,7 @@
 import {
   createEventRepo,
   findAllEventsRepo,
+  findEventByTitleRepo,
   findEventByIdRepo,
   updateEventRepo,
   deleteEventRepo,
@@ -9,28 +10,28 @@ import { prisma } from "../config/prisma";
 
 export const createEventService = async (user: any, data: any) => {
   if (!user) throw { status: 401, message: "Unauthorized" };
-  if (user.role !== "ORGANIZER")
-    throw { status: 403, message: "Only organizer can create event" };
 
-  const organizer = await prisma.eventOrganizer.findUnique({
-    where: { user_id: user.id },
-  });
-  if (!organizer)
-    throw { status: 403, message: "User is not registered as organizer" };
+  if (user.role !== "ORGANIZER") {
+    throw { status: 403, message: "Only organizer can create events" };
+  }
 
-  return createEventRepo({
-    ...data,
-    event_organizer_id: organizer.id,
-    available_seats: data.total_seats ?? 0,
-  });
+  if (!data.event_name || !data.event_start_date || !data.event_end_date) {
+    throw { status: 400, message: "Missing required event fields" };
+  }
+
+  if (!Array.isArray(data.tickets) || data.tickets.length === 0) {
+    throw { status: 400, message: "Event must have at least one ticket type" };
+  }
+
+  return createEventRepo(user.id, data);
 };
 
 export const getEventsService = async (category?: string) => {
   return findAllEventsRepo(category);
 };
 
-export const getEventByIdService = async (id: number) => {
-  const event = await findEventByIdRepo(id);
+export const getEventByTitleService = async (title: string) => {
+  const event = await findEventByTitleRepo(title);
   if (!event) throw { status: 404, message: "Event not found" };
   return event;
 };

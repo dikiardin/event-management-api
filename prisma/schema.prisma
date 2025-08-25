@@ -52,7 +52,7 @@ model Event {
   event_category     CategoryType
   event_price        Float        @default(0)
   event_thumbnail    String
-  event_name         String
+  event_name         String       @unique
   event_description  String
   event_start_date   DateTime
   event_end_date     DateTime
@@ -121,7 +121,7 @@ model Attendee {
 
 model Voucher {
   id                 Int      @id @default(autoincrement())
-  event_id           Int
+  event_id           Int      
   voucher_code       String   @unique
   discount_value     Float
   voucher_start_date DateTime @default(now())

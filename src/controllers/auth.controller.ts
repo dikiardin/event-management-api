@@ -30,6 +30,7 @@ export default class AuthController {
         },
       });
     } catch (error: any) {
+      next(error)
       return res.status(error.status || 500).json({
         message: error.message || "Internal Server Error",
       });
@@ -67,6 +68,7 @@ export default class AuthController {
         },
       });
     } catch (error: any) {
+      next(error)
       return res
         .status(400)
         .json({ message: error.message || "Invalid or session expired" });
