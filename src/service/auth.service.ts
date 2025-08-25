@@ -23,7 +23,7 @@ export const registerService = async (data: {
 
   const hashedPassword = await bcrypt.hash(password, 10);
 
-  // 1️⃣ Buat user
+  // buat user
   const user = await createAccount({
     email,
     password: hashedPassword,
@@ -32,7 +32,7 @@ export const registerService = async (data: {
     role,
   });
 
-  // 2️⃣ Jika user ORGANIZER, buat record EventOrganizer otomatis
+  // jika role organizer, buat record EventOrganizer otomatis
   if (role === "ORGANIZER") {
     await prisma.eventOrganizer.create({
       data: {
@@ -44,16 +44,17 @@ export const registerService = async (data: {
     });
   }
 
-  // 3️⃣ Token verifikasi email
-  const token = createToken({ id: user.id }, "24h");
-  const link = `http://localhost:3000/auth/verify?token=${token}`;
+  // token verifikasi email
+  const token = createToken({ id: user.id }, "1h");
+  const link = `http://localhost:3000/verify/${token}`;
 
   await transport.sendMail({
     to: email,
     subject: "Verify your account",
     html: `<p>Hi ${username},</p>
            <p>Please verify your account:</p>
-           <a href="${link}" target="_blank">Verify Account</a>`,
+           <a href="${link}" target="_blank">Verify Account</a>
+           <p>This link will expire in <strong>1 hour</strong></p>`
   });
 
   return user;
@@ -66,9 +67,9 @@ export const loginService = async (email: string, password: string) => {
   const isPasswordValid = await bcrypt.compare(password, user.password);
   if (!isPasswordValid) throw new Error("Invalid email or password");
 
-  // 🟢 Tambahkan role ke payload token
+  // tambah role ke payload token
   const token = createToken(
-    { id: user.id, role: user.role }, // <--- role masuk sini
+    { id: user.id, role: user.role }, // <- role masuk sini
     "24h"
   );
 
@@ -86,7 +87,7 @@ export const loginService = async (email: string, password: string) => {
 
 export const verifyEmailService = async (token: string) => {
   const decoded: any = decodeToken(token);
-  if (!decoded?.id) throw { status: 400, message: "Invalid token" };
+  if (!decoded?.id) throw { status: 400, message: "Invalid link" };
 
   const user = await findUserById(decoded.id);
   if (!user) throw { status: 404, message: "User not found" };

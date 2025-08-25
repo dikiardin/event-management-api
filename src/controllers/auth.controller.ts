@@ -51,7 +51,7 @@ export default class AuthController {
       const { token } = req.query;
 
       if (!token || typeof token !== "string") {
-        return res.status(400).json({ message: "Invalid or missing token" });
+        return res.status(400).json({ message: "Invalid or missing link" });
       }
 
       const result = await verifyEmailService(token);
@@ -69,7 +69,7 @@ export default class AuthController {
     } catch (error: any) {
       return res
         .status(400)
-        .json({ message: error.message || "Invalid or expired token" });
+        .json({ message: error.message || "Invalid or session expired" });
     }
   }
 
