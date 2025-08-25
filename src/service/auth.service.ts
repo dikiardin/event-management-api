@@ -14,7 +14,7 @@ export const registerService = async (data: {
   email: string;
   password: string;
   username: string;
-  role: "USER" | "ADMIN" | "ORGANIZER";
+  role: "USER" | "ORGANIZER";
 }) => {
   const { email, password, username, role } = data;
 

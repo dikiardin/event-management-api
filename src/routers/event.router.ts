@@ -19,7 +19,7 @@ class EventRouter {
     this.route.post(
       "/create",
       verifyToken,
-      verifyRole([RoleType.ADMIN, RoleType.ORGANIZER]),
+      verifyRole([RoleType.ORGANIZER]),
       this.eventController.create
     );
 
@@ -33,7 +33,7 @@ class EventRouter {
     this.route.patch(
       "/edit/:id",
       verifyToken,
-      verifyRole([RoleType.ADMIN, RoleType.ORGANIZER]),
+      verifyRole([RoleType.ORGANIZER]),
       this.eventController.update
     );
 
@@ -41,7 +41,7 @@ class EventRouter {
     this.route.delete(
       "/delete/:id",
       verifyToken,
-      verifyRole([RoleType.ADMIN, RoleType.ORGANIZER]),
+      verifyRole([RoleType.ORGANIZER]),
       this.eventController.delete
     );
   }
