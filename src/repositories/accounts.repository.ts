@@ -5,7 +5,7 @@ export const createAccount = async (data: {
   password: string;
   username: string;
   is_verified: boolean;
-  role: "USER" | "ADMIN" | "ORGANIZER";
+  role: "USER" | "ORGANIZER";
 }) => {
   return prisma.user.create({ data });
 };
