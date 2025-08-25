@@ -1,83 +1,129 @@
 import { Request, Response, NextFunction } from "express";
-import EventService from "../service/event.service";
+import {
+  createEventService,
+  getEventsService,
+  getEventByIdService,
+  updateEventService,
+  deleteEventService,
+} from "../service/event.service";
 
 export default class EventController {
-  private eventService: EventService;
-
-  constructor() {
-    this.eventService = new EventService();
-  }
-
-  create = async (req: Request, res: Response, next: NextFunction) => {
+  public async create(req: Request, res: Response, next: NextFunction) {
     try {
       const user = res.locals.decrypt;
-      const newEvent = await this.eventService.createEvent(user, req.body);
-      res.status(201).json({ success: true, data: newEvent });
-    } catch (error) {
-      next(error);
-    }
-  };
 
-  getAll = async (req: Request, res: Response, next: NextFunction) => {
+      if (!req.body.title || !req.body.date || !req.body.category) {
+        return res
+          .status(400)
+          .json({ success: false, message: "All fields are required" });
+      }
+
+      const newEvent = await createEventService(user, req.body);
+
+      return res.status(201).json({
+        success: true,
+        message: "Event created successfully",
+        data: newEvent,
+      });
+    } catch (error: any) {
+      return res.status(error.status || 500).json({
+        success: false,
+        message: error.message || "Internal Server Error",
+      });
+    }
+  }
+
+  public async getAll(req: Request, res: Response, next: NextFunction) {
     try {
-      const { category } = req.query; // get query param
-      const events = await this.eventService.getEvents(category as string | undefined);
-      res.status(200).json({ success: true, data: events });
-    } catch (error) {
-      next(error);
-    }
-  };  
+      const { category } = req.query;
 
-  getById = async (
+      const events = await getEventsService(category as string | undefined);
+
+      return res.status(200).json({
+        success: true,
+        message: "Events retrieved successfully",
+        data: events,
+      });
+    } catch (error: any) {
+      return res.status(error.status || 500).json({
+        success: false,
+        message: error.message || "Internal Server Error",
+      });
+    }
+  }
+
+  public async getById(
     req: Request<{ id: string }>,
     res: Response,
     next: NextFunction
-  ) => {
+  ) {
     try {
       const id = Number(req.params.id);
       if (isNaN(id))
         return res.status(400).json({ success: false, message: "Invalid ID" });
 
-      const event = await this.eventService.getEventById(id);
-      res.status(200).json({ success: true, data: event });
-    } catch (error) {
-      next(error);
-    }
-  };
+      const event = await getEventByIdService(id);
 
-  update = async (
+      return res.status(200).json({
+        success: true,
+        message: "Event retrieved successfully",
+        data: event,
+      });
+    } catch (error: any) {
+      return res.status(error.status || 500).json({
+        success: false,
+        message: error.message || "Internal Server Error",
+      });
+    }
+  }
+
+  public async update(
     req: Request<{ id: string }>,
     res: Response,
     next: NextFunction
-  ) => {
+  ) {
     try {
       const id = Number(req.params.id);
       if (isNaN(id))
         return res.status(400).json({ success: false, message: "Invalid ID" });
 
-      const updatedEvent = await this.eventService.updateEvent(id, req.body);
-      res.status(200).json({ success: true, data: updatedEvent });
-    } catch (error) {
-      next(error);
-    }
-  };
+      const updatedEvent = await updateEventService(id, req.body);
 
-  delete = async (
+      return res.status(200).json({
+        success: true,
+        message: "Event updated successfully",
+        data: updatedEvent,
+      });
+    } catch (error: any) {
+      return res.status(error.status || 500).json({
+        success: false,
+        message: error.message || "Internal Server Error",
+      });
+    }
+  }
+
+  public async delete(
     req: Request<{ id: string }>,
     res: Response,
     next: NextFunction
-  ) => {
+  ) {
     try {
       const id = Number(req.params.id);
       if (isNaN(id))
         return res.status(400).json({ success: false, message: "Invalid ID" });
 
-      const user = res.locals.decrypt; // ambil data user dari JWT
-      await this.eventService.deleteEvent(user, id);
+      const user = res.locals.decrypt;
+      await deleteEventService(user, id);
 
-      res.status(200).json({ success: true, message: "Event deleted" });
-    } catch (error) {
-      next(error);
+      return res.status(200).json({
+        success: true,
+        message: "Event deleted successfully",
+      });
+    } catch (error: any) {
+      return res.status(error.status || 500).json({
+        success: false,
+        message: error.message || "Internal Server Error",
+      });
     }
-  };
+  }
 }

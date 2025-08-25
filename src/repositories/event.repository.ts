@@ -1,47 +1,45 @@
 import { prisma } from "../config/prisma";
 import { CategoryType } from "../generated/prisma";
 
-export default class EventRepository {
-  async create(data: any) {
-    return await prisma.event.create({ data });
-  }
+export const createEventRepo = async (data: any) => {
+  return prisma.event.create({ data });
+};
 
-  async findAll(category?: string) {
-    return await prisma.event.findMany({
-      where: category
-        ? { event_category: category.toUpperCase() as CategoryType } // filter if category is provided
-        : {},
-      include: {
-        organizer: true,
-        tickets: true,
-        vouchers: true,
-        reviews: true,
-      },
-    });
-  }
+export const findAllEventsRepo = async (category?: string) => {
+  return prisma.event.findMany({
+    where: category
+      ? { event_category: category.toUpperCase() as CategoryType }
+      : {},
+    include: {
+      organizer: true,
+      tickets: true,
+      vouchers: true,
+      reviews: true,
+    },
+  });
+};
 
-  async findById(id: number) {
-    return await prisma.event.findUnique({
-      where: { id },
-      include: {
-        organizer: true,
-        tickets: true,
-        vouchers: true,
-        reviews: true,
-      },
-    });
-  }
+export const findEventByIdRepo = async (id: number) => {
+  return prisma.event.findUnique({
+    where: { id },
+    include: {
+      organizer: true,
+      tickets: true,
+      vouchers: true,
+      reviews: true,
+    },
+  });
+};
 
-  async update(id: number, data: any) {
-    return await prisma.event.update({
-      where: { id },
-      data,
-    });
-  }
+export const updateEventRepo = async (id: number, data: any) => {
+  return prisma.event.update({
+    where: { id },
+    data,
+  });
+};
 
-  async delete(id: number) {
-    return await prisma.event.delete({
-      where: { id },
-    });
-  }
-}
+export const deleteEventRepo = async (id: number) => {
+  return prisma.event.delete({
+    where: { id },
+  });
+};
