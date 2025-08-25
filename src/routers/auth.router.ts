@@ -29,13 +29,6 @@ class AuthRouter {
     this.route.get("/keep", verifyToken, this.authController.keepLogin);
 
     this.route.get("/verify", this.authController.verifyEmail);
-
-    this.route.patch(
-      "/profile-img",
-      verifyToken,
-      uploaderMemory().single("img"),
-      this.authController.changeProfileImg
-    );
   }
 
   public getRouter(): Router {

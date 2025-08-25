@@ -18,9 +18,11 @@ export const registerService = async (data: {
 }) => {
   const { email, password, username, role } = data;
 
+  // cek email duplicate
   const existingUser = await findByEmail(email);
   if (existingUser) throw { status: 400, message: "Email already registered" };
 
+  // hash password
   const hashedPassword = await bcrypt.hash(password, 10);
 
   // buat user
@@ -32,11 +34,23 @@ export const registerService = async (data: {
     role,
   });
 
+  // generate referral code unik
+  const referralCode = `USER${user.id}-${Math.random()
+    .toString(36)
+    .substring(2, 8)
+    .toUpperCase()}`;
+
+  // update user dengan referral code
+  const updatedUser = await prisma.user.update({
+    where: { id: user.id },
+    data: { referral_code: referralCode },
+  });
+
   // jika role organizer, buat record EventOrganizer otomatis
   if (role === "ORGANIZER") {
     await prisma.eventOrganizer.create({
       data: {
-        user_id: user.id,
+        user_id: updatedUser.id,
         event_organizer_name: `${username} Organizer`, // default nama
         event_organizer_description: "", // bisa diupdate nanti
         event_organizer_bank_account: "", // bisa diupdate nanti
@@ -45,7 +59,7 @@ export const registerService = async (data: {
   }
 
   // token verifikasi email
-  const token = createToken({ id: user.id }, "1h");
+  const token = createToken({ id: updatedUser.id }, "1h");
   const link = `http://localhost:3000/verify/${token}`;
 
   await transport.sendMail({
@@ -54,10 +68,10 @@ export const registerService = async (data: {
     html: `<p>Hi ${username},</p>
            <p>Please verify your account:</p>
            <a href="${link}" target="_blank">Verify Account</a>
-           <p>This link will expire in <strong>1 hour</strong></p>`
+           <p>This link will expire in <strong>1 hour</strong></p>`,
   });
 
-  return user;
+  return updatedUser;
 };
 
 export const loginService = async (email: string, password: string) => {
