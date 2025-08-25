@@ -5,6 +5,7 @@ import express, { Application, NextFunction, Request, Response } from "express";
 import AuthRouter from "./routers/auth.router";
 import EventRouter from "./routers/event.router";
 import VoucherRouter from "./routers/voucher.router";
+import ProfileRouter from "./routers/profile.router";
 
 const PORT: string = process.env.PORT || "8181";
 
@@ -19,10 +20,12 @@ class App {
   }
 
   private configure(): void {
-    this.app.use(cors({
-      origin: process.env.FE_URL,
-      methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
-    }));
+    this.app.use(
+      cors({
+        origin: process.env.FE_URL,
+        methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
+      })
+    );
     this.app.use(express.json());
   }
   private route(): void {
@@ -34,9 +37,11 @@ class App {
     const authRouter: AuthRouter = new AuthRouter();
     const eventRouter: EventRouter = new EventRouter();
     const voucherRouter: VoucherRouter = new VoucherRouter();
+    const profileRouter: ProfileRouter = new ProfileRouter();
     this.app.use("/auth", authRouter.getRouter());
     this.app.use("/event", eventRouter.getRouter());
     this.app.use("/voucher", voucherRouter.getRouter());
+    this.app.use("/profile", profileRouter.getRouter());
   }
 
   private errorHandling(): void {
