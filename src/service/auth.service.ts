@@ -82,9 +82,15 @@ export const loginService = async (email: string, password: string) => {
   if (!isPasswordValid) throw new Error("Invalid email or password");
 
   // tambah role ke payload token
-  const token = createToken(
-    { id: user.id, role: user.role }, // <- role masuk sini
-    "24h"
+  const token = createToken({ id: user.id, role: user.role }, "24h");
+
+  // ambil total points dari table Point
+  const pointsData = await prisma.point.findMany({
+    where: { user_id: user.id },
+  });
+  const totalPoints = pointsData.reduce(
+    (acc, curr) => acc + curr.point_balance,
+    0
   );
 
   return {
@@ -95,6 +101,9 @@ export const loginService = async (email: string, password: string) => {
       username: user.username,
       role: user.role,
       is_verified: user.is_verified,
+      referral_code: user.referral_code ?? null,
+      profile_pic: user.profile_pic ?? null,
+      points: totalPoints,
     },
   };
 };
