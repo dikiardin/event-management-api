@@ -6,6 +6,7 @@ import AuthRouter from "./routers/auth.router";
 import EventRouter from "./routers/event.router";
 import VoucherRouter from "./routers/voucher.router";
 import ProfileRouter from "./routers/profile.router";
+import { TransactionRouter } from "./routers/transaction.router";
 
 const PORT: string = process.env.PORT || "8181";
 
@@ -38,10 +39,12 @@ class App {
     const eventRouter: EventRouter = new EventRouter();
     const voucherRouter: VoucherRouter = new VoucherRouter();
     const profileRouter: ProfileRouter = new ProfileRouter();
+    const transactionRouter: TransactionRouter = new TransactionRouter();
     this.app.use("/auth", authRouter.getRouter());
     this.app.use("/event", eventRouter.getRouter());
     this.app.use("/voucher", voucherRouter.getRouter());
     this.app.use("/profile", profileRouter.getRouter());
+    this.app.use("/transaction", transactionRouter.getRouter());
   }
 
   private errorHandling(): void {

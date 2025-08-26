@@ -69,17 +69,20 @@ model Event {
 }
 
 model Transactions {
-  id                    Int        @id @default(autoincrement())
+  id                    Int               @id @default(autoincrement())
   user_id               Int
   coupon_id             Int?
   voucher_id            Int?
-  status                StatusType
-  points_used           Int        @default(0)
-  discount_voucher      Float      @default(0)
-  discount_coupon       Float      @default(0)
-  transaction_date_time DateTime   @default(now())
+  point_id              Int?
+  status                PaymentStatusType
+  points_used           Int               @default(0)
+  discount_voucher      Float             @default(0)
+  discount_coupon       Float             @default(0)
+  total_price           Float             @default(0)
+  transaction_date_time DateTime          @default(now())
   transaction_expired   DateTime
-  is_accepted           Boolean    @default(false)
+  is_accepted           Boolean           @default(false)
+  payment_proof_url     String?
 
   user     User                @relation(fields: [user_id], references: [id])
   coupon   Coupon?             @relation(fields: [coupon_id], references: [id])
@@ -121,7 +124,7 @@ model Attendee {
 
 model Voucher {
   id                 Int      @id @default(autoincrement())
-  event_id           Int      
+  event_id           Int
   voucher_code       String   @unique
   discount_value     Float
   voucher_start_date DateTime @default(now())
@@ -163,10 +166,13 @@ model Review {
   user  User  @relation(fields: [user_id], references: [id])
 }
 
-enum StatusType {
-  PENDING
+enum PaymentStatusType {
+  WAITING_PAYMENT
+  WAITING_CONFIRMATION
   SUCCESS
-  FAILED
+  REJECTED
+  EXPIRED
+  CANCELLED
 }
 
 enum TicketType {
