@@ -11,14 +11,14 @@ export class TransactionController {
       const userId = res.locals.decrypt?.id;
       if (!userId) throw new Error("Unauthorized");
 
-      const { tickets, pointsUsed, couponId, voucherId } = req.body;
+      const { tickets, pointId, couponId, voucherId } = req.body;
 
       const transaction = await TransactionService.createTransaction(
         userId,
         tickets,
-        pointsUsed,
         couponId,
-        voucherId
+        voucherId,
+        pointId
       );
       res.json(transaction);
     } catch (error) {
