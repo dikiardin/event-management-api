@@ -87,6 +87,7 @@ model Transactions {
   user     User                @relation(fields: [user_id], references: [id])
   coupon   Coupon?             @relation(fields: [coupon_id], references: [id])
   voucher  Voucher?            @relation(fields: [voucher_id], references: [id])
+  point    Point?              @relation(fields: [point_id], references: [id])
   tickets  TransactionTicket[]
   attendee Attendee[]
 }
@@ -152,6 +153,7 @@ model Point {
   point_expired DateTime
 
   user User @relation(fields: [user_id], references: [id])
+  transactions Transactions[]
 }
 
 model Review {
