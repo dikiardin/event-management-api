@@ -7,6 +7,7 @@ import EventRouter from "./routers/event.router";
 import VoucherRouter from "./routers/voucher.router";
 import ProfileRouter from "./routers/profile.router";
 import { TransactionRouter } from "./routers/transaction.router";
+import { startTransactionJob } from "./jobs/transactionJob";
 
 const PORT: string = process.env.PORT || "8181";
 
@@ -59,6 +60,7 @@ class App {
   public start(): void {
     this.app.listen(PORT, () => {
       console.log(`API Running: http://localhost:${PORT}`);
+      startTransactionJob();
     });
   }
 }
