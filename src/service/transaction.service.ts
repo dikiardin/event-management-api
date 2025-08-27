@@ -7,7 +7,6 @@ export class TransactionService {
   public static async createTransaction(
     userId: number,
     tickets: { ticket_id: number; qty: number }[],
-    pointsUsed = 0,
     couponId?: number,
     voucherId?: number,
     pointId?: number
@@ -15,7 +14,7 @@ export class TransactionService {
     if (!tickets || tickets.length === 0)
       throw new Error("Tickets cannot be empty");
 
-    // Calculate subtotal
+    // subtotal (before minus it with point, coupon, voucher)
     let subtotal = 0;
     for (const t of tickets) {
       const ticket = await prisma.ticket.findUnique({
@@ -27,7 +26,7 @@ export class TransactionService {
       subtotal += ticket.price * t.qty;
     }
 
-    // Apply voucher (percent)
+    // voucher
     let discountVoucher = 0;
     if (voucherId) {
       const voucher = await prisma.voucher.findUnique({
@@ -36,10 +35,10 @@ export class TransactionService {
       if (!voucher) throw new Error("Voucher not found");
       if (voucher.voucher_end_date < new Date())
         throw new Error("Voucher expired");
-      discountVoucher = voucher.discount_value; // e.g., 0.1 for 10%
+      discountVoucher = voucher.discount_value;
     }
 
-    // Apply coupon (percent)
+    // coupon
     let discountCoupon = 0;
     if (couponId) {
       const coupon = await prisma.coupon.findUnique({
@@ -48,10 +47,10 @@ export class TransactionService {
       if (!coupon) throw new Error("Coupon not found");
       if (coupon.user_id !== userId)
         throw new Error("Coupon does not belong to user");
-      discountCoupon = coupon.discount_value; // e.g., 0.05 for 5%
+      discountCoupon = coupon.discount_value;
     }
-    
-    // Apply point
+
+    // points
     let discountPoint = 0;
     if (pointId) {
       const point = await prisma.point.findUnique({
@@ -60,38 +59,47 @@ export class TransactionService {
       if (!point) throw new Error("Point not found");
       if (point.user_id !== userId)
         throw new Error("Point does not belong to user");
-      discountPoint = point.point_balance; 
+      if (point.point_expired < new Date()) throw new Error("Point expired");
+
+      discountPoint = point.point_balance;
     }
 
+    // discount
     const voucherDiscountAmount = subtotal * (discountVoucher / 100);
     const couponDiscountAmount = subtotal * (discountCoupon / 100);
 
-    // Final total price
+    // total price
     const totalPrice =
-      subtotal - pointsUsed - voucherDiscountAmount - couponDiscountAmount;
+      subtotal - discountPoint - voucherDiscountAmount - couponDiscountAmount;
 
-    // Set transaction expiry (2 hours)
+    // transaction expired
     const transaction_expired = new Date();
     transaction_expired.setHours(transaction_expired.getHours() + 2);
 
-    // Create transaction
+    // create transaction
     const transaction = await TransactionRepository.createTransaction({
       user_id: userId,
       coupon_id: couponId ?? null,
       voucher_id: voucherId ?? null,
-      points_used: pointsUsed,
+      point_id: pointId ?? null,
+      points_used: discountPoint,
       discount_voucher: discountVoucher,
       discount_coupon: discountCoupon,
       total_price: totalPrice,
       transaction_expired,
     });
 
-    // Remove coupon after use
+    // remove coupon after use
     if (couponId) {
       await prisma.coupon.delete({ where: { id: couponId } });
     }
 
-    // Create transaction tickets and reduce seat quantity
+    // remove point after use
+    if (pointId) {
+      await prisma.point.delete({ where: { id: pointId } });
+    }
+
+    // reduce ticket qty
     for (const t of tickets) {
       const ticket = await prisma.ticket.findUnique({
         where: { id: t.ticket_id },
@@ -112,32 +120,6 @@ export class TransactionService {
         data: { available_qty: ticket.available_qty - t.qty },
       });
     }
-
-    // Deduct all points fully
-    let actualPointsDeducted = 0;
-
-    const userPoints = await prisma.point.findMany({
-      where: {
-        user_id: userId,
-        point_expired: { gte: new Date() },
-        point_balance: { gt: 0 },
-      },
-      orderBy: { point_expired: "asc" },
-    });
-
-    // Delete all point rows and sum their balances
-    for (const pointRow of userPoints) {
-      console.log(
-        "Deleting point row id:",
-        pointRow.id,
-        "balance:",
-        pointRow.point_balance
-      );
-      await prisma.point.delete({ where: { id: pointRow.id } });
-    }
-
-    // Record actual points used
-    pointsUsed = actualPointsDeducted;
 
     return transaction;
   }
@@ -214,8 +196,13 @@ export class TransactionService {
   public static async autoCancelAdminPending() {
     const pendingTransactions =
       await TransactionRepository.getPendingAdminTransactions();
+
     for (const tx of pendingTransactions) {
       await this.cancelTransaction(tx.id);
+
+      await TransactionRepository.updateTransaction(tx.id, {
+        status: PaymentStatusType.CANCELLED,
+      });
     }
   }
 }
