@@ -6,12 +6,41 @@ import {
   updateEventService,
   deleteEventService,
 } from "../service/event.service";
+import { cloudinaryUpload } from "../config/cloudinary";
 
 export default class EventController {
+  // public async createEvent(req: Request, res: Response, next: NextFunction) {
+  //   try {
+  //     const user = res.locals.decrypt;
+  //     const newEvent = await createEventService(user, req.body);
+
+  //     return res.status(201).json({
+  //       success: true,
+  //       message: "Event created successfully",
+  //       data: newEvent,
+  //     });
+  //   } catch (error: any) {
+  //     next(error);
+  //   }
+  // }
+
   public async createEvent(req: Request, res: Response, next: NextFunction) {
     try {
       const user = res.locals.decrypt;
-      const newEvent = await createEventService(user, req.body);
+      let body = req.body;
+
+      // convert stringified JSON back into an array/object
+      if (body.tickets && typeof body.tickets === "string") {
+        body.tickets = JSON.parse(body.tickets);
+      }
+
+      // if file exists, upload to cloudinary
+      if (req.file) {
+        const result = await cloudinaryUpload(req.file);
+        body.event_thumbnail = result.secure_url;
+      }
+
+      const newEvent = await createEventService(user, body);
 
       return res.status(201).json({
         success: true,
