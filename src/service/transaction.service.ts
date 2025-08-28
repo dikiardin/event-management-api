@@ -5,7 +5,7 @@ import { cloudinaryUpload } from "../config/cloudinary";
 
 export class TransactionService {
   // create new transaction
-  public static async createTransaction(
+  public static async createTransactionService(
     userId: number,
     tickets: { ticket_id: number; qty: number }[],
     couponId?: number,
@@ -89,7 +89,7 @@ export class TransactionService {
     transaction_expired.setHours(transaction_expired.getHours() + 2);
 
     // create transaction
-    const transaction = await TransactionRepository.createTransaction({
+    const transaction = await TransactionRepository.createTransactionRepo({
       user_id: userId,
       coupon_id: couponId ?? null,
       voucher_id: voucherId ?? null,
@@ -146,13 +146,13 @@ export class TransactionService {
   }
 
   // upload payment proof
-  public static async uploadPaymentProof(
+  public static async uploadPaymentProofService(
     transactionId: number,
     file: Express.Multer.File
   ) {
     if (!file) throw { status: 400, message: "No file provided" };
     const result = await cloudinaryUpload(file);
-    const transaction = await TransactionRepository.uploadPaymentProof(
+    const transaction = await TransactionRepository.uploadPaymentProofRepo(
       transactionId,
       result.secure_url
     );
@@ -160,9 +160,8 @@ export class TransactionService {
   }
 
   // cancel transaction and rollback
-
-  public static async cancelTransaction(transactionId: number) {
-    const transaction = await TransactionRepository.getTransactionById(
+  public static async cancelTransactionService(transactionId: number) {
+    const transaction = await TransactionRepository.getTransactionByIdRepo(
       transactionId
     );
     if (!transaction) throw new Error("Transaction not found");
@@ -183,34 +182,44 @@ export class TransactionService {
       });
     }
 
-    return TransactionRepository.updateTransaction(transactionId, {
+    return TransactionRepository.updateTransactionRepo(transactionId, {
       status: PaymentStatusType.CANCELLED,
     });
   }
 
   // auto expire transactions
-  public static async autoExpireTransactions() {
+  public static async autoExpireTransactionsService() {
     const expiredTransactions =
-      await TransactionRepository.getExpiredTransactions();
+      await TransactionRepository.getExpiredTransactionsRepo();
     for (const tx of expiredTransactions) {
-      await this.cancelTransaction(tx.id);
-      await TransactionRepository.updateTransaction(tx.id, {
+      await this.cancelTransactionService(tx.id);
+      await TransactionRepository.updateTransactionRepo(tx.id, {
         status: PaymentStatusType.EXPIRED,
       });
     }
   }
 
   // auto cancel pending admin confirmations
-  public static async autoCancelAdminPending() {
+  public static async autoCancelAdminPendingService() {
     const pendingTransactions =
-      await TransactionRepository.getPendingAdminTransactions();
+      await TransactionRepository.getPendingAdminTransactionsRepo();
 
     for (const tx of pendingTransactions) {
-      await this.cancelTransaction(tx.id);
+      await this.cancelTransactionService(tx.id);
 
-      await TransactionRepository.updateTransaction(tx.id, {
+      await TransactionRepository.updateTransactionRepo(tx.id, {
         status: PaymentStatusType.CANCELLED,
       });
     }
+  }
+
+  // get transaction by user id
+  public static async getTransactionsByUserIdService(userId: number) {
+    return await TransactionRepository.getTransactionsByUserIdRepo(userId);
+  }
+
+  // get transaction by event id
+  public static async getTransactionsByEventIdService(eventId: number) {
+    return await TransactionRepository.getTransactionsByEventIdRepo(eventId);
   }
 }

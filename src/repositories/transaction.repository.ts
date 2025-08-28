@@ -1,7 +1,8 @@
 import { prisma } from "../config/prisma";
 import { PaymentStatusType } from "../generated/prisma";
 
-const FINAL_STATUSES: PaymentStatusType[] = [ // status that cant be changed
+const FINAL_STATUSES: PaymentStatusType[] = [
+  // status that cant be changed
   PaymentStatusType.SUCCESS,
   PaymentStatusType.REJECTED,
   PaymentStatusType.EXPIRED,
@@ -17,7 +18,7 @@ const BLOCKED_UPLOAD_STATUSES: PaymentStatusType[] = [
 ];
 
 export class TransactionRepository {
-  public static async createTransaction(data: {
+  public static async createTransactionRepo(data: {
     user_id: number;
     coupon_id?: number | null;
     voucher_id?: number | null;
@@ -44,14 +45,14 @@ export class TransactionRepository {
     });
   }
 
-  public static async getTransactionById(id: number) {
+  public static async getTransactionByIdRepo(id: number) {
     return prisma.transactions.findUnique({
       where: { id },
       include: { tickets: true, user: true, voucher: true, coupon: true },
     });
   }
 
-  public static async updateTransaction(id: number, data: any) {
+  public static async updateTransactionRepo(id: number, data: any) {
     const transaction = await prisma.transactions.findUnique({ where: { id } });
     if (!transaction) throw new Error("Transaction not found");
 
@@ -66,7 +67,7 @@ export class TransactionRepository {
     });
   }
 
-  public static async uploadPaymentProof(
+  public static async uploadPaymentProofRepo(
     transactionId: number,
     proofUrl: string
   ) {
@@ -94,7 +95,7 @@ export class TransactionRepository {
     });
   }
 
-  public static async getExpiredTransactions() {
+  public static async getExpiredTransactionsRepo() {
     const now = new Date();
     return prisma.transactions.findMany({
       where: {
@@ -104,12 +105,57 @@ export class TransactionRepository {
     });
   }
 
-  public static async getPendingAdminTransactions() {
+  public static async getPendingAdminTransactionsRepo() {
     const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
     return prisma.transactions.findMany({
       where: {
         status: PaymentStatusType.WAITING_CONFIRMATION,
         transaction_date_time: { lte: threeDaysAgo },
+      },
+    });
+  }
+
+  public static async getTransactionsByUserIdRepo(userId: number) {
+    return prisma.transactions.findMany({
+      where: { user_id: userId },
+      include: {
+        tickets: {
+          include: {
+            ticket: {
+              include: { event: true },
+            },
+          },
+        },
+        coupon: true,
+        voucher: true,
+        point: true,
+      },
+    });
+  }
+
+  public static async getTransactionsByEventIdRepo(eventId: number) {
+    return prisma.transactions.findMany({
+      where: {
+        tickets: {
+          some: {
+            ticket: {
+              event_id: eventId,
+            },
+          },
+        },
+      },
+      include: {
+        user: true,
+        tickets: {
+          include: {
+            ticket: {
+              include: { event: true },
+            },
+          },
+        },
+        coupon: true,
+        voucher: true,
+        point: true,
       },
     });
   }

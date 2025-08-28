@@ -6,7 +6,7 @@ export function startTransactionJob() {
   cron.schedule("*/1 * * * *", async () => {
     console.log("[CRON] Checking expired transactions...");
     try {
-      await TransactionService.autoExpireTransactions();
+      await TransactionService.autoExpireTransactionsService();
     } catch (err) {
       console.error("[CRON] Failed to auto-expire transactions:", err);
     }
@@ -16,7 +16,7 @@ export function startTransactionJob() {
   cron.schedule("*/1 * * * *", async () => {
     console.log("[CRON] Checking for admin pending transactions...");
     try {
-      await TransactionService.autoCancelAdminPending();
+      await TransactionService.autoCancelAdminPendingService();
     } catch (err) {
       console.error("[CRON] Failed to auto-reject transactions:", err);
     }
