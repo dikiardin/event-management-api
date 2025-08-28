@@ -137,7 +137,7 @@ export class TransactionRepository {
     return prisma.transactions.findMany({
       where: {
         tickets: {
-          some: {
+          every: {
             ticket: {
               event_id: eventId,
             },
