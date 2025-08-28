@@ -1,5 +1,4 @@
 import { Request, Response, NextFunction } from "express";
-import { prisma } from "../config/prisma";
 import {
   registerService,
   loginService,
@@ -7,7 +6,6 @@ import {
   keepLoginService,
 } from "../service/auth.service";
 import { useReferralService } from "../service/referral.service";
-import { cloudinaryUpload } from "../config/cloudinary";
 
 export default class AuthController {
   public async register(req: Request, res: Response, next: NextFunction) {

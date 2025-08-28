@@ -6,6 +6,18 @@ import {
 } from "../repositories/referral.repository";
 import { v4 as uuidv4 } from "uuid";
 
+// Utility to add calendar months (handles month length correctly)
+const addMonths = (date: Date, months: number) => {
+  const result = new Date(date);
+  const d = result.getDate();
+  result.setMonth(result.getMonth() + months);
+  // Handle cases where the original date was at the end of the month
+  if (result.getDate() !== d) {
+    result.setDate(0);
+  }
+  return result;
+};
+
 // Generate referral code untuk user baru
 export const generateReferralService = async (user: any) => {
   if (!user) throw { status: 401, message: "Unauthorized" };
@@ -37,11 +49,7 @@ export const useReferralService = async (
   }
 
   // 🎁 Kasih reward poin ke referrer (expire 3 bulan)
-  await createPointRepo(
-    referrer.id,
-    10000,
-    new Date(Date.now() + 90 * 24 * 60 * 60 * 1000)
-  );
+  await createPointRepo(referrer.id, 10000, addMonths(new Date(), 3));
 
   // 🎟️ Kasih kupon ke user baru (diskon 10%)
   await createCouponRepo(

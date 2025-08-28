@@ -4,7 +4,6 @@ import {
   loginValidation,
   registerValidation,
 } from "../middleware/validator/auth";
-import { uploaderMemory } from "../middleware/uploader";
 import { verifyToken } from "../middleware/verifyToken";
 
 class AuthRouter {
