@@ -24,7 +24,6 @@ export default class EventController {
         const result = await cloudinaryUpload(req.file);
         body.event_thumbnail = result.secure_url;
       }
-
       const newEvent = await createEventService(user, body);
 
       return res.status(201).json({
