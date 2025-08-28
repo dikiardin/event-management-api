@@ -17,7 +17,7 @@ export class TransactionController {
 
       const { tickets, pointId, couponId, voucherId } = req.body;
 
-      const transaction = await TransactionService.createTransaction(
+      const transaction = await TransactionService.createTransactionService(
         userId,
         tickets,
         couponId,
@@ -48,7 +48,7 @@ export class TransactionController {
       if (!req.file) throw new Error("No payment proof file uploaded");
 
       // call service
-      const transaction = await TransactionService.uploadPaymentProof(
+      const transaction = await TransactionService.uploadPaymentProofService(
         Number(id),
         req.file
       );
@@ -80,7 +80,7 @@ export class TransactionController {
       const { id } = req.params;
 
       // Check ownership inside service
-      const transaction = await TransactionService.cancelTransaction(
+      const transaction = await TransactionService.cancelTransactionService(
         Number(id)
       );
       if (transaction.user_id !== userId)
@@ -89,6 +89,50 @@ export class TransactionController {
       res
         .status(200)
         .json({ success: true, message: "Transaction calcelled", transaction });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  public async getTransactionsByUserId(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const { userId } = req.params;
+      const transactions =
+        await TransactionService.getTransactionsByUserIdService(Number(userId));
+      return res
+        .status(200)
+        .json({
+          success: true,
+          message: "transaction by user id catched succesfully",
+          transactions,
+        });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  public async getTransactionsByEventId(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const { eventId } = req.params;
+      const transactions =
+        await TransactionService.getTransactionsByEventIdService(
+          Number(eventId)
+        );
+      return res
+        .status(200)
+        .json({
+          success: true,
+          message: "transaction by event id catched succesfully",
+          transactions,
+        });
     } catch (error) {
       next(error);
     }
