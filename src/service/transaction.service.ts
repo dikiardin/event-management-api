@@ -4,6 +4,7 @@ import { PaymentStatusType } from "../generated/prisma";
 import { cloudinaryUpload } from "../config/cloudinary";
 
 export class TransactionService {
+  // create new transaction
   public static async createTransaction(
     userId: number,
     tickets: { ticket_id: number; qty: number }[],
@@ -16,6 +17,7 @@ export class TransactionService {
 
     // subtotal (before minus it with point, coupon, voucher)
     let subtotal = 0;
+    let eventId: number | null = null;
     for (const t of tickets) {
       const ticket = await prisma.ticket.findUnique({
         where: { id: t.ticket_id },
@@ -23,6 +25,14 @@ export class TransactionService {
       if (!ticket) throw new Error(`Ticket ${t.ticket_id} not found`);
       if (ticket.available_qty < t.qty)
         throw new Error(`Not enough seats for ticket ${t.ticket_id}`);
+      if (!eventId) {
+        eventId = ticket.event_id;
+      } else if (eventId !== ticket.event_id) {
+        throw new Error(
+          "All tickets in a transaction must belong to the same event"
+        );
+      }
+
       subtotal += ticket.price * t.qty;
     }
 
@@ -35,6 +45,8 @@ export class TransactionService {
       if (!voucher) throw new Error("Voucher not found");
       if (voucher.voucher_end_date < new Date())
         throw new Error("Voucher expired");
+      if (voucher.event_id !== eventId)
+        throw new Error("Voucher does not belong to this event");
       discountVoucher = voucher.discount_value;
     }
 
@@ -99,7 +111,7 @@ export class TransactionService {
       await prisma.point.delete({ where: { id: pointId } });
     }
 
-    // reduce ticket qty
+    // reduce ticket qty + update event seats
     for (const t of tickets) {
       const ticket = await prisma.ticket.findUnique({
         where: { id: t.ticket_id },
@@ -115,20 +127,30 @@ export class TransactionService {
         },
       });
 
+      // decrement ticket qty
       await prisma.ticket.update({
         where: { id: t.ticket_id },
         data: { available_qty: ticket.available_qty - t.qty },
+      });
+
+      // decrement event available seats
+      await prisma.event.update({
+        where: { id: ticket.event_id },
+        data: {
+          available_seats: { decrement: t.qty },
+        },
       });
     }
 
     return transaction;
   }
 
-  // Upload payment proof (Cloudinary)
+  // upload payment proof
   public static async uploadPaymentProof(
     transactionId: number,
     file: Express.Multer.File
   ) {
+    if (!file) throw { status: 400, message: "No file provided" };
     const result = await cloudinaryUpload(file);
     const transaction = await TransactionRepository.uploadPaymentProof(
       transactionId,
@@ -137,42 +159,28 @@ export class TransactionService {
     return transaction;
   }
 
-  // Cancel transaction and rollback
+  // cancel transaction and rollback
+
   public static async cancelTransaction(transactionId: number) {
     const transaction = await TransactionRepository.getTransactionById(
       transactionId
     );
     if (!transaction) throw new Error("Transaction not found");
 
-    // Rollback ticket quantities
+    // rollback ticket & event quantities
     for (const t of transaction.tickets) {
-      await prisma.ticket.update({
+      const ticket = await prisma.ticket.update({
         where: { id: t.ticket_id },
         data: { available_qty: { increment: t.qty } },
       });
-    }
 
-    // Rollback points
-    if (transaction.points_used > 0) {
-      let remainingPoints = transaction.points_used;
-
-      const userPoints = await prisma.point.findMany({
-        where: {
-          user_id: transaction.user_id,
-          point_expired: { gte: new Date() },
+      // rollback event seats
+      await prisma.event.update({
+        where: { id: ticket.event_id },
+        data: {
+          available_seats: { increment: t.qty },
         },
-        orderBy: { point_expired: "asc" },
       });
-
-      for (const pointRow of userPoints) {
-        if (remainingPoints <= 0) break;
-        const increment = remainingPoints;
-        await prisma.point.update({
-          where: { id: pointRow.id },
-          data: { point_balance: pointRow.point_balance + increment },
-        });
-        remainingPoints -= increment;
-      }
     }
 
     return TransactionRepository.updateTransaction(transactionId, {
@@ -180,7 +188,7 @@ export class TransactionService {
     });
   }
 
-  // Auto-expire transactions
+  // auto expire transactions
   public static async autoExpireTransactions() {
     const expiredTransactions =
       await TransactionRepository.getExpiredTransactions();
@@ -192,7 +200,7 @@ export class TransactionService {
     }
   }
 
-  // Auto-cancel pending admin confirmations
+  // auto cancel pending admin confirmations
   public static async autoCancelAdminPending() {
     const pendingTransactions =
       await TransactionRepository.getPendingAdminTransactions();

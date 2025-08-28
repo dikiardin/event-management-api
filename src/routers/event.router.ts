@@ -3,6 +3,9 @@ import EventController from "../controllers/event.controller";
 import { verifyToken } from "../middleware/verifyToken";
 import { verifyRole } from "../middleware/verifyRole";
 import { RoleType } from "../generated/prisma";
+import multer from "multer";
+
+const upload = multer({ storage: multer.memoryStorage() });
 
 class EventRouter {
   private route: Router;
@@ -19,7 +22,7 @@ class EventRouter {
     this.route.post(
       "/create",
       verifyToken,
-      verifyRole([RoleType.ORGANIZER]),
+      verifyRole([RoleType.ORGANIZER]), upload.single("event_thumbnail"),
       this.eventController.createEvent
     );
 

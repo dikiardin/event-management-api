@@ -6,7 +6,11 @@ const upload = multer({ storage: multer.memoryStorage() });
 
 export class TransactionController {
   // Create transaction
-  public async createTransaction(req: Request, res: Response, next: NextFunction) {
+  public async createTransaction(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
     try {
       const userId = res.locals.decrypt?.id;
       if (!userId) throw new Error("Unauthorized");
@@ -20,36 +24,55 @@ export class TransactionController {
         voucherId,
         pointId
       );
-      res.json(transaction);
+      res.status(201).json({
+        success: true,
+        message: "Transaction created succesfully",
+        transaction,
+      });
     } catch (error) {
       next(error);
     }
   }
 
   // Upload payment proof
-  public uploadPaymentProof = [
-    upload.single("payment_proof"), // field name from frontend form
-    async (req: Request, res: Response, next: NextFunction) => {
-      try {
-        const userId = res.locals.decrypt?.id;
-        if (!userId) throw new Error("Unauthorized");
+  public async uploadPaymentProof(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const userId = res.locals.decrypt?.id;
+      if (!userId) throw new Error("Unauthorized");
 
-        const { id } = req.params;
-        if (!req.file) throw new Error("No payment proof file uploaded");
+      const { id } = req.params;
+      if (!req.file) throw new Error("No payment proof file uploaded");
 
-        // Check ownership
-        const transaction = await TransactionService.uploadPaymentProof(Number(id), req.file);
-        if (transaction.user_id !== userId) throw new Error("Unauthorized: cannot modify other user's transaction");
+      // call service
+      const transaction = await TransactionService.uploadPaymentProof(
+        Number(id),
+        req.file
+      );
 
-        res.json(transaction);
-      } catch (error) {
-        next(error);
+      if (transaction.user_id !== userId) {
+        throw new Error("Unauthorized: cannot modify other user's transaction");
       }
-    },
-  ];
+
+      res.status(200).json({
+        success: true,
+        message: "Payment proof uploaded successfully",
+        transaction,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 
   // Cancel transaction
-  public async cancelTransaction(req: Request, res: Response, next: NextFunction) {
+  public async cancelTransaction(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
     try {
       const userId = res.locals.decrypt?.id;
       if (!userId) throw new Error("Unauthorized");
@@ -57,10 +80,15 @@ export class TransactionController {
       const { id } = req.params;
 
       // Check ownership inside service
-      const transaction = await TransactionService.cancelTransaction(Number(id));
-      if (transaction.user_id !== userId) throw new Error("Unauthorized: cannot cancel other user's transaction");
+      const transaction = await TransactionService.cancelTransaction(
+        Number(id)
+      );
+      if (transaction.user_id !== userId)
+        throw new Error("Unauthorized: cannot cancel other user's transaction");
 
-      res.json(transaction);
+      res
+        .status(200)
+        .json({ success: true, message: "Transaction calcelled", transaction });
     } catch (error) {
       next(error);
     }
