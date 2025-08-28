@@ -9,21 +9,6 @@ import {
 import { cloudinaryUpload } from "../config/cloudinary";
 
 export default class EventController {
-  // public async createEvent(req: Request, res: Response, next: NextFunction) {
-  //   try {
-  //     const user = res.locals.decrypt;
-  //     const newEvent = await createEventService(user, req.body);
-
-  //     return res.status(201).json({
-  //       success: true,
-  //       message: "Event created successfully",
-  //       data: newEvent,
-  //     });
-  //   } catch (error: any) {
-  //     next(error);
-  //   }
-  // }
-
   public async createEvent(req: Request, res: Response, next: NextFunction) {
     try {
       const user = res.locals.decrypt;
@@ -34,7 +19,7 @@ export default class EventController {
         body.tickets = JSON.parse(body.tickets);
       }
 
-      // if file exists, upload to cloudinary
+      // upload thumbnail to cloudinary
       if (req.file) {
         const result = await cloudinaryUpload(req.file);
         body.event_thumbnail = result.secure_url;
