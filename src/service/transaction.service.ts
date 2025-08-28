@@ -1,6 +1,6 @@
 import { prisma } from "../config/prisma";
 import { TransactionRepository } from "../repositories/transaction.repository";
-import { PaymentStatusType } from "../generated/prisma";
+import { $Enums } from "../generated/prisma";
 import { cloudinaryUpload } from "../config/cloudinary";
 
 export class TransactionService {
@@ -59,6 +59,10 @@ export class TransactionService {
       if (!coupon) throw new Error("Coupon not found");
       if (coupon.user_id !== userId)
         throw new Error("Coupon does not belong to user");
+      // Enforce 3-month validity from creation for referral coupons
+      const threeMonthsAfter = new Date(coupon.created_at);
+      threeMonthsAfter.setMonth(threeMonthsAfter.getMonth() + 3);
+      if (new Date() > threeMonthsAfter) throw new Error("Coupon expired");
       discountCoupon = coupon.discount_value;
     }
 
@@ -183,7 +187,7 @@ export class TransactionService {
     }
 
     return TransactionRepository.updateTransactionRepo(transactionId, {
-      status: PaymentStatusType.CANCELLED,
+      status: $Enums.PaymentStatusType.REJECTED,
     });
   }
 
@@ -194,7 +198,7 @@ export class TransactionService {
     for (const tx of expiredTransactions) {
       await this.cancelTransactionService(tx.id);
       await TransactionRepository.updateTransactionRepo(tx.id, {
-        status: PaymentStatusType.EXPIRED,
+        status: $Enums.PaymentStatusType.REJECTED,
       });
     }
   }
@@ -208,7 +212,7 @@ export class TransactionService {
       await this.cancelTransactionService(tx.id);
 
       await TransactionRepository.updateTransactionRepo(tx.id, {
-        status: PaymentStatusType.CANCELLED,
+        status: $Enums.PaymentStatusType.REJECTED,
       });
     }
   }
