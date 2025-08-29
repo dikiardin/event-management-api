@@ -13,7 +13,7 @@ export function startTransactionJob() {
   });
 
   // auto-cancel admin pending after 3 days (same logic as expired)
-  cron.schedule("*/1 * * * *", async () => {
+  cron.schedule("*/2 * * * *", async () => {
     console.log("[CRON] Checking for admin pending transactions...");
     try {
       await TransactionService.autoCancelAdminPendingService();

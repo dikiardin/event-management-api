@@ -1,8 +1,5 @@
 import { Request, Response, NextFunction } from "express";
 import { TransactionService } from "../service/transaction.service";
-import multer from "multer";
-
-const upload = multer({ storage: multer.memoryStorage() });
 
 export class TransactionController {
   // Create transaction
@@ -103,13 +100,11 @@ export class TransactionController {
       const { userId } = req.params;
       const transactions =
         await TransactionService.getTransactionsByUserIdService(Number(userId));
-      return res
-        .status(200)
-        .json({
-          success: true,
-          message: "transaction by user id catched succesfully",
-          transactions,
-        });
+      return res.status(200).json({
+        success: true,
+        message: "transaction by user id catched succesfully",
+        transactions,
+      });
     } catch (error) {
       next(error);
     }
@@ -126,13 +121,11 @@ export class TransactionController {
         await TransactionService.getTransactionsByEventIdService(
           Number(eventId)
         );
-      return res
-        .status(200)
-        .json({
-          success: true,
-          message: "transaction by event id catched succesfully",
-          transactions,
-        });
+      return res.status(200).json({
+        success: true,
+        message: "transaction by event id catched succesfully",
+        transactions,
+      });
     } catch (error) {
       next(error);
     }
