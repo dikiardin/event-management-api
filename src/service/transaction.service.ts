@@ -163,31 +163,32 @@ export class TransactionService {
     return transaction;
   }
 
-  // cancel transaction and rollback
-  public static async cancelTransactionService(transactionId: number) {
+  // rollback seat and ticket
+  private static async rollbackSeatsAndTickets(transactionId: number) {
     const transaction = await TransactionRepository.getTransactionByIdRepo(
       transactionId
     );
     if (!transaction) throw new Error("Transaction not found");
 
-    // rollback ticket & event quantities
     for (const t of transaction.tickets) {
       const ticket = await prisma.ticket.update({
         where: { id: t.ticket_id },
         data: { available_qty: { increment: t.qty } },
       });
 
-      // rollback event seats
       await prisma.event.update({
         where: { id: ticket.event_id },
-        data: {
-          available_seats: { increment: t.qty },
-        },
+        data: { available_seats: { increment: t.qty } },
       });
     }
+  }
+
+  // cancel transaction
+  public static async cancelTransactionService(transactionId: number) {
+    await this.rollbackSeatsAndTickets(transactionId); // rollback
 
     return TransactionRepository.updateTransactionRepo(transactionId, {
-      status: $Enums.PaymentStatusType.REJECTED,
+      status: $Enums.PaymentStatusType.CANCELLED,
     });
   }
 
@@ -195,10 +196,12 @@ export class TransactionService {
   public static async autoExpireTransactionsService() {
     const expiredTransactions =
       await TransactionRepository.getExpiredTransactionsRepo();
+
     for (const tx of expiredTransactions) {
-      await this.cancelTransactionService(tx.id);
+      await this.rollbackSeatsAndTickets(tx.id); // rollback
+
       await TransactionRepository.updateTransactionRepo(tx.id, {
-        status: $Enums.PaymentStatusType.REJECTED,
+        status: $Enums.PaymentStatusType.EXPIRED,
       });
     }
   }
@@ -209,10 +212,10 @@ export class TransactionService {
       await TransactionRepository.getPendingAdminTransactionsRepo();
 
     for (const tx of pendingTransactions) {
-      await this.cancelTransactionService(tx.id);
+      await this.rollbackSeatsAndTickets(tx.id); //rollback
 
       await TransactionRepository.updateTransactionRepo(tx.id, {
-        status: $Enums.PaymentStatusType.REJECTED,
+        status: $Enums.PaymentStatusType.CANCELLED,
       });
     }
   }
