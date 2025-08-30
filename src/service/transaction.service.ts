@@ -90,20 +90,23 @@ export class TransactionService {
 
     // transaction expired
     const transaction_expired = new Date();
-    transaction_expired.setHours(transaction_expired.getHours() + 2);
+    transaction_expired.setMinutes(transaction_expired.getMinutes() + 1);
 
     // create transaction
-    const transaction = await TransactionRepository.createTransactionRepo({
-      user_id: userId,
-      coupon_id: couponId ?? null,
-      voucher_id: voucherId ?? null,
-      point_id: pointId ?? null,
-      points_used: discountPoint,
-      discount_voucher: discountVoucher,
-      discount_coupon: discountCoupon,
-      total_price: totalPrice,
-      transaction_expired,
-    });
+    const transaction = await TransactionRepository.createTransactionRepo(
+      {
+        user_id: userId,
+        coupon_id: couponId ?? null,
+        voucher_id: voucherId ?? null,
+        point_id: pointId ?? null,
+        points_used: discountPoint,
+        discount_voucher: discountVoucher,
+        discount_coupon: discountCoupon,
+        total_price: totalPrice,
+        transaction_expired,
+        
+      }
+    );
 
     // remove coupon after use
     if (couponId) {
@@ -152,15 +155,17 @@ export class TransactionService {
   // upload payment proof
   public static async uploadPaymentProofService(
     transactionId: number,
-    file: Express.Multer.File
+    file: Express.Multer.File,
+    userId: number
   ) {
     if (!file) throw { status: 400, message: "No file provided" };
     const result = await cloudinaryUpload(file);
-    const transaction = await TransactionRepository.uploadPaymentProofRepo(
+
+    return TransactionRepository.uploadPaymentProofRepo(
       transactionId,
-      result.secure_url
+      result.secure_url,
+      userId
     );
-    return transaction;
   }
 
   // rollback seat and ticket

@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import { TransactionService } from "../service/transaction.service";
 
 export class TransactionController {
-  // Create transaction
+  // create transaction
   public async createTransaction(
     req: Request,
     res: Response,
@@ -31,7 +31,7 @@ export class TransactionController {
     }
   }
 
-  // Upload payment proof
+  // upload payment proof
   public async uploadPaymentProof(
     req: Request,
     res: Response,
@@ -47,7 +47,8 @@ export class TransactionController {
       // call service
       const transaction = await TransactionService.uploadPaymentProofService(
         Number(id),
-        req.file
+        req.file,
+        userId
       );
 
       if (transaction.user_id !== userId) {
@@ -64,7 +65,7 @@ export class TransactionController {
     }
   }
 
-  // Cancel transaction
+  // cancel transaction
   public async cancelTransaction(
     req: Request,
     res: Response,
@@ -76,7 +77,7 @@ export class TransactionController {
 
       const { id } = req.params;
 
-      // Check ownership inside service
+      // check ownership inside service
       const transaction = await TransactionService.cancelTransactionService(
         Number(id)
       );
@@ -91,6 +92,7 @@ export class TransactionController {
     }
   }
 
+  // get transactions by user id
   public async getTransactionsByUserId(
     req: Request,
     res: Response,
@@ -110,6 +112,7 @@ export class TransactionController {
     }
   }
 
+  // get transactions by event id
   public async getTransactionsByEventId(
     req: Request,
     res: Response,
