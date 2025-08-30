@@ -126,7 +126,7 @@ export class TransactionRepository {
   }
 
   public static async getPendingAdminTransactionsRepo() {
-    const threeDaysAgo = new Date(Date.now() - 60 * 1000);
+    const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
     return prisma.transactions.findMany({
       where: {
         status: PaymentStatusType.WAITING_CONFIRMATION,

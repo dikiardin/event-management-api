@@ -90,7 +90,7 @@ export class TransactionService {
 
     // transaction expired
     const transaction_expired = new Date();
-    transaction_expired.setMinutes(transaction_expired.getMinutes() + 1);
+    transaction_expired.setHours(transaction_expired.getHours() + 2);
 
     // create transaction
     const transaction = await TransactionRepository.createTransactionRepo(
