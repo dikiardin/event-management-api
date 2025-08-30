@@ -1,5 +1,5 @@
 import { prisma } from "../config/prisma";
-import { PaymentStatusType } from "../generated/prisma";
+import { PaymentStatusType, Prisma } from "../generated/prisma";
 
 const FINAL_STATUSES: PaymentStatusType[] = [
   // status that cant be changed
@@ -10,11 +10,8 @@ const FINAL_STATUSES: PaymentStatusType[] = [
 ];
 
 const BLOCKED_UPLOAD_STATUSES: PaymentStatusType[] = [
-  PaymentStatusType.SUCCESS,
-  PaymentStatusType.REJECTED,
-  PaymentStatusType.EXPIRED,
-  PaymentStatusType.CANCELLED,
-  PaymentStatusType.WAITING_CONFIRMATION, // blocked re-upload the proof
+  ...FINAL_STATUSES,
+  PaymentStatusType.WAITING_CONFIRMATION,
 ];
 
 export class TransactionRepository {
@@ -23,10 +20,10 @@ export class TransactionRepository {
     coupon_id?: number | null;
     voucher_id?: number | null;
     point_id?: number | null;
-    points_used?: number;
-    discount_voucher?: number;
-    discount_coupon?: number;
-    total_price?: number;
+    points_used: number;
+    discount_voucher: number;
+    discount_coupon: number;
+    total_price: number;
     transaction_expired: Date;
   }) {
     return prisma.transactions.create({
@@ -35,12 +32,12 @@ export class TransactionRepository {
         coupon_id: data.coupon_id ?? null,
         voucher_id: data.voucher_id ?? null,
         point_id: data.point_id ?? null,
-        points_used: data.points_used ?? 0,
-        discount_voucher: data.discount_voucher ?? 0,
-        discount_coupon: data.discount_coupon ?? 0,
-        total_price: data.total_price ?? 0,
-        status: PaymentStatusType.WAITING_PAYMENT,
+        points_used: data.points_used,
+        discount_voucher: data.discount_voucher,
+        discount_coupon: data.discount_coupon,
+        total_price: data.total_price,
         transaction_expired: data.transaction_expired,
+        status: "WAITING_PAYMENT",
       },
     });
   }
@@ -69,21 +66,22 @@ export class TransactionRepository {
 
   public static async uploadPaymentProofRepo(
     transactionId: number,
-    proofUrl: string
+    proofUrl: string,
+    userId: number
   ) {
     const transaction = await prisma.transactions.findUnique({
       where: { id: transactionId },
     });
 
     if (!transaction) throw new Error("Transaction not found");
+    if (transaction.user_id !== userId) throw new Error("Unauthorized");
 
-    if (
-      BLOCKED_UPLOAD_STATUSES.includes(transaction.status as PaymentStatusType)
-    ) {
+    if (BLOCKED_UPLOAD_STATUSES.includes(transaction.status)) {
       throw new Error(
         `Transaction already ${transaction.status}, cannot upload proof again`
       );
     }
+
     return prisma.transactions.update({
       where: { id: transactionId },
       data: {
@@ -92,6 +90,28 @@ export class TransactionRepository {
         is_accepted: false,
         transaction_date_time: new Date(),
       },
+    });
+  }
+
+  public static async cancelTransactionRepo(
+    transactionId: number,
+    userId: number
+  ) {
+    const transaction = await prisma.transactions.findUnique({
+      where: { id: transactionId },
+    });
+    if (!transaction) throw new Error("Transaction not found");
+    if (transaction.user_id !== userId) throw new Error("Unauthorized");
+
+    if (FINAL_STATUSES.includes(transaction.status)) {
+      throw new Error(
+        `Transaction already ${transaction.status}, cannot cancel`
+      );
+    }
+
+    return prisma.transactions.update({
+      where: { id: transactionId },
+      data: { status: PaymentStatusType.CANCELLED },
     });
   }
 
@@ -106,7 +126,7 @@ export class TransactionRepository {
   }
 
   public static async getPendingAdminTransactionsRepo() {
-    const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
+    const threeDaysAgo = new Date(Date.now() - 60 * 1000);
     return prisma.transactions.findMany({
       where: {
         status: PaymentStatusType.WAITING_CONFIRMATION,
