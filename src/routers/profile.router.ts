@@ -26,6 +26,8 @@ class ProfileRouter {
       verifyToken,
       this.controller.resetPassword
     );
+    this.route.put("/change-email", verifyToken, this.controller.changeEmail);
+    this.route.get("/verify-email-change", this.controller.verifyEmailChange);
     // POST untuk upload pertama kali profile image
     this.route.post(
       "/upload-profile-img",

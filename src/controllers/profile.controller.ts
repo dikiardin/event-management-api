@@ -4,6 +4,8 @@ import {
   changePasswordService,
   resetPasswordService,
   uploadProfileImgService,
+  changeEmailService,
+  verifyEmailChangeService,
 } from "../service/profile.service";
 
 export default class ProfileController {
@@ -90,6 +92,53 @@ export default class ProfileController {
       const result = await resetPasswordService(userId, newPassword);
       res.status(200).json({ success: true, ...result });
     } catch (error: any) {
+      next(error);
+    }
+  };
+
+  public changeEmail = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
+    try {
+      const userId = parseInt(res.locals.decrypt.id);
+      const { newEmail } = req.body;
+
+      if (!newEmail) {
+        return res
+          .status(400)
+          .json({ success: false, message: "New email required" });
+      }
+
+      const result = await changeEmailService(userId, newEmail);
+      res.status(200).json({ success: true, ...result });
+    } catch (error: any) {
+      next(error);
+    }
+  };
+
+  public verifyEmailChange = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
+    try {
+      const { token } = req.query;
+
+      if (!token || typeof token !== "string") {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid or missing token",
+        });
+      }
+
+      console.log("Received token for verification:", token);
+      const result = await verifyEmailChangeService(token);
+      console.log("Verification result:", result);
+      res.status(200).json({ success: true, ...result });
+    } catch (error: any) {
+      console.error("Error in verifyEmailChange controller:", error);
       next(error);
     }
   };

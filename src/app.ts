@@ -24,8 +24,12 @@ class App {
   private configure(): void {
     this.app.use(
       cors({
-        origin: process.env.FE_URL,
-        methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
+        origin: ["http://localhost:3000", "http://127.0.0.1:3000"],
+        methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+        credentials: false,
+        allowedHeaders: ["Content-Type", "Authorization", "Accept"],
+        exposedHeaders: ["Content-Type", "Authorization"],
+        optionsSuccessStatus: 200,
       })
     );
     this.app.use(express.json());
@@ -51,8 +55,43 @@ class App {
   private errorHandling(): void {
     this.app.use(
       (error: any, req: Request, res: Response, next: NextFunction) => {
-        console.log(error);
-        res.status(error.code || 500).send(error);
+        console.log("Global error handler:", error);
+
+        // Handle JWT errors
+        if (error.name === "JsonWebTokenError") {
+          return res.status(401).json({
+            success: false,
+            message: "Invalid token format",
+          });
+        }
+
+        if (error.name === "TokenExpiredError") {
+          return res.status(401).json({
+            success: false,
+            message: "Token has expired",
+          });
+        }
+
+        // Handle different types of errors
+        if (error.status) {
+          return res.status(error.status).json({
+            success: false,
+            message: error.message || "An error occurred",
+          });
+        }
+
+        if (error.code) {
+          return res.status(error.code).json({
+            success: false,
+            message: error.message || "An error occurred",
+          });
+        }
+
+        // Default error response
+        res.status(500).json({
+          success: false,
+          message: "Internal server error",
+        });
       }
     );
   }

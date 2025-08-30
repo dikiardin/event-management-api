@@ -2,7 +2,6 @@ import { Request, Response, NextFunction } from "express";
 import { TransactionService } from "../service/transaction.service";
 
 export class TransactionController {
-  // Create transaction
   public async createTransaction(
     req: Request,
     res: Response,
@@ -13,7 +12,6 @@ export class TransactionController {
       if (!userId) throw new Error("Unauthorized");
 
       const { tickets, pointId, couponId, voucherId } = req.body;
-
       const transaction = await TransactionService.createTransactionService(
         userId,
         tickets,
@@ -21,17 +19,18 @@ export class TransactionController {
         voucherId,
         pointId
       );
-      res.status(201).json({
-        success: true,
-        message: "Transaction created succesfully",
-        transaction,
-      });
+      res
+        .status(201)
+        .json({
+          success: true,
+          message: "Transaction created succesfully",
+          transaction,
+        });
     } catch (error) {
       next(error);
     }
   }
 
-  // Upload payment proof
   public async uploadPaymentProof(
     req: Request,
     res: Response,
@@ -40,23 +39,19 @@ export class TransactionController {
     try {
       const userId = res.locals.decrypt?.id;
       if (!userId) throw new Error("Unauthorized");
-
-      const { id } = req.params;
       if (!req.file) throw new Error("No payment proof file uploaded");
 
-      // call service
+      const { id } = req.params;
       const transaction = await TransactionService.uploadPaymentProofService(
         Number(id),
         req.file
       );
-
-      if (transaction.user_id !== userId) {
-        throw new Error("Unauthorized: cannot modify other user's transaction");
-      }
+      if (transaction.user_id !== userId)
+        throw new Error("Unauthorized upload");
 
       res.status(200).json({
         success: true,
-        message: "Payment proof uploaded successfully",
+        message: "Payment proof uploaded",
         transaction,
       });
     } catch (error) {
@@ -64,7 +59,6 @@ export class TransactionController {
     }
   }
 
-  // Cancel transaction
   public async cancelTransaction(
     req: Request,
     res: Response,
@@ -75,17 +69,13 @@ export class TransactionController {
       if (!userId) throw new Error("Unauthorized");
 
       const { id } = req.params;
-
-      // Check ownership inside service
       const transaction = await TransactionService.cancelTransactionService(
-        Number(id)
+        Number(id),
+        userId
       );
-      if (transaction.user_id !== userId)
-        throw new Error("Unauthorized: cannot cancel other user's transaction");
-
       res
         .status(200)
-        .json({ success: true, message: "Transaction calcelled", transaction });
+        .json({ success: true, message: "Transaction cancelled", transaction });
     } catch (error) {
       next(error);
     }
@@ -100,11 +90,7 @@ export class TransactionController {
       const { userId } = req.params;
       const transactions =
         await TransactionService.getTransactionsByUserIdService(Number(userId));
-      return res.status(200).json({
-        success: true,
-        message: "transaction by user id catched succesfully",
-        transactions,
-      });
+      res.status(200).json({ success: true, transactions });
     } catch (error) {
       next(error);
     }
@@ -121,11 +107,7 @@ export class TransactionController {
         await TransactionService.getTransactionsByEventIdService(
           Number(eventId)
         );
-      return res.status(200).json({
-        success: true,
-        message: "transaction by event id catched succesfully",
-        transactions,
-      });
+      res.status(200).json({ success: true, transactions });
     } catch (error) {
       next(error);
     }
