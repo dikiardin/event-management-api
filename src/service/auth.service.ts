@@ -127,11 +127,23 @@ export const keepLoginService = async (userId: number) => {
   const signInUser = await findUserById(userId);
   if (!signInUser) throw { status: 404, message: "Account not found" };
 
+  // ambil total points dari table Point
+  const pointsData = await prisma.point.findMany({
+    where: { user_id: signInUser.id },
+  });
+  const totalPoints = pointsData.reduce(
+    (acc, curr) => acc + curr.point_balance,
+    0
+  );
+
   const newToken = createToken({ id: signInUser.id }, "24h");
   return {
     email: signInUser.email,
     username: signInUser.username,
     role: signInUser.role,
+    referral_code: signInUser.referral_code ?? null,
+    profile_pic: signInUser.profile_pic ?? null,
+    points: totalPoints,
     token: newToken,
   };
 };

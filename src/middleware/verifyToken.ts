@@ -28,8 +28,24 @@ export const verifyToken = (
 
     res.locals.decrypt = checkToken;
     next();
-  } catch (error) {
+  } catch (error: any) {
     console.log("Verify Token Error:", error);
+
+    // Handle specific JWT errors
+    if (error.name === "JsonWebTokenError") {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid token format",
+      });
+    }
+
+    if (error.name === "TokenExpiredError") {
+      return res.status(401).json({
+        success: false,
+        message: "Token has expired",
+      });
+    }
+
     next(error);
   }
 };

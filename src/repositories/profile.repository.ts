@@ -1,9 +1,9 @@
 import { prisma } from "../config/prisma";
 
-// Update profil user (username, profile_pic)
+// Update profil user (username, profile_pic, email)
 export const updateProfileRepo = async (
   userId: number,
-  data: Partial<{ username?: string; profile_pic?: string }>
+  data: Partial<{ username?: string; profile_pic?: string; email?: string }>
 ) => {
   return prisma.user.update({
     where: { id: userId },
@@ -37,5 +37,12 @@ export const resetPasswordRepo = async (
 export const findUserByIdRepo = async (userId: number) => {
   return prisma.user.findUnique({
     where: { id: userId },
+  });
+};
+
+// Cari user by email
+export const findByEmailRepo = async (email: string) => {
+  return prisma.user.findUnique({
+    where: { email },
   });
 };
