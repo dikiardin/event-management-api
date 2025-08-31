@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import { TransactionService } from "../service/transaction.service";
 
 export class TransactionController {
+  // create transaction
   public async createTransaction(
     req: Request,
     res: Response,
@@ -19,18 +20,17 @@ export class TransactionController {
         voucherId,
         pointId
       );
-      res
-        .status(201)
-        .json({
-          success: true,
-          message: "Transaction created succesfully",
-          transaction,
-        });
+      res.status(201).json({
+        success: true,
+        message: "Transaction created succesfully",
+        transaction,
+      });
     } catch (error) {
       next(error);
     }
   }
 
+  // upload payment proof
   public async uploadPaymentProof(
     req: Request,
     res: Response,
@@ -44,7 +44,8 @@ export class TransactionController {
       const { id } = req.params;
       const transaction = await TransactionService.uploadPaymentProofService(
         Number(id),
-        req.file
+        req.file,
+        userId
       );
       if (transaction.user_id !== userId)
         throw new Error("Unauthorized upload");
@@ -59,6 +60,7 @@ export class TransactionController {
     }
   }
 
+  // cancel transaction
   public async cancelTransaction(
     req: Request,
     res: Response,
@@ -69,18 +71,23 @@ export class TransactionController {
       if (!userId) throw new Error("Unauthorized");
 
       const { id } = req.params;
+
+      // check ownership inside service
       const transaction = await TransactionService.cancelTransactionService(
         Number(id),
         userId
       );
-      res
-        .status(200)
-        .json({ success: true, message: "Transaction cancelled", transaction });
+      res.status(200).json({
+        success: true,
+        message: "Transaction cancelled",
+        transaction,
+      });
     } catch (error) {
       next(error);
     }
   }
 
+  // get transactions by user id
   public async getTransactionsByUserId(
     req: Request,
     res: Response,
@@ -96,6 +103,7 @@ export class TransactionController {
     }
   }
 
+  // get transactions by event id
   public async getTransactionsByEventId(
     req: Request,
     res: Response,

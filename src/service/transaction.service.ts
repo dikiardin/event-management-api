@@ -79,22 +79,22 @@ export class TransactionService {
     const totalPrice =
       subtotal - discountPoint - voucherDiscountAmount - couponDiscountAmount;
 
-    // expired in 2h
+    // expired in 2h (sekarang +3 menit untuk testing)
     const transaction_expired = new Date();
     transaction_expired.setMinutes(transaction_expired.getMinutes() + 3);
 
     // create transaction
-    const transaction = await TransactionRepository.createTransactionRepo(
-      userId,
-      totalPrice,
+    const transaction = await TransactionRepository.createTransactionRepo({
+      user_id: userId,
+      coupon_id: couponId ?? null,
+      voucher_id: voucherId ?? null,
+      point_id: pointId ?? null,
+      points_used: discountPoint,
+      discount_voucher: discountVoucher,
+      discount_coupon: discountCoupon,
+      total_price: totalPrice,
       transaction_expired,
-      discountPoint,
-      discountVoucher,
-      discountCoupon,
-      couponId,
-      voucherId,
-      pointId
-    );
+    });
 
     // remove coupon & points
     if (couponId) await prisma.coupon.delete({ where: { id: couponId } });
@@ -133,13 +133,16 @@ export class TransactionService {
   // upload payment proof
   public static async uploadPaymentProofService(
     transactionId: number,
-    file: Express.Multer.File
+    file: Express.Multer.File,
+    userId: number
   ) {
     if (!file) throw { status: 400, message: "No file provided" };
     const result = await cloudinaryUpload(file);
+
     return TransactionRepository.uploadPaymentProofRepo(
       transactionId,
-      result.secure_url
+      result.secure_url,
+      userId
     );
   }
 
