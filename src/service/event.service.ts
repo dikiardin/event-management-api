@@ -5,6 +5,9 @@ import {
   findEventByIdRepo,
   updateEventRepo,
   deleteEventRepo,
+  findEventsByOrganizerRepo,
+  getOrganizerStatsRepo,
+  getOrganizerTransactionsRepo,
 } from "../repositories/event.repository";
 import { prisma } from "../config/prisma";
 
@@ -34,6 +37,18 @@ export const getEventByTitleService = async (title: string) => {
   const event = await findEventByTitleRepo(title);
   if (!event) throw { status: 404, message: "Event not found" };
   return event;
+};
+
+export const getEventsByOrganizerService = async (userId: number) => {
+  return findEventsByOrganizerRepo(userId);
+};
+
+export const getOrganizerStatsService = async (userId: number) => {
+  return getOrganizerStatsRepo(userId);
+};
+
+export const getOrganizerTransactionsService = async (userId: number) => {
+  return getOrganizerTransactionsRepo(userId);
 };
 
 export const updateEventService = async (id: number, data: any) => {

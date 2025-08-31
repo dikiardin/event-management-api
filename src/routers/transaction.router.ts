@@ -45,6 +45,57 @@ export class TransactionRouter {
       verifyRole([RoleType.ORGANIZER]),
       this.transactionController.getTransactionsByEventId
     );
+
+    // New routes for organizer transaction management
+    this.route.get(
+      "/organizer",
+      verifyToken,
+      verifyRole([RoleType.ORGANIZER]),
+      this.transactionController.getOrganizerTransactions
+    );
+
+    // Alternative route for debugging and testing
+    this.route.get(
+      "/organizer/simple",
+      verifyToken,
+      verifyRole([RoleType.ORGANIZER]),
+      this.transactionController.getOrganizerTransactionsSimple
+    );
+
+    this.route.get(
+      "/organizer/status/:status",
+      verifyToken,
+      verifyRole([RoleType.ORGANIZER]),
+      this.transactionController.getOrganizerTransactionsByStatus
+    );
+
+    this.route.post(
+      "/organizer/accept/:id",
+      verifyToken,
+      verifyRole([RoleType.ORGANIZER]),
+      this.transactionController.acceptTransaction
+    );
+
+    this.route.post(
+      "/organizer/reject/:id",
+      verifyToken,
+      verifyRole([RoleType.ORGANIZER]),
+      this.transactionController.rejectTransaction
+    );
+
+    this.route.get(
+      "/organizer/proof/:id",
+      verifyToken,
+      verifyRole([RoleType.ORGANIZER]),
+      this.transactionController.getTransactionPaymentProof
+    );
+
+    this.route.get(
+      "/organizer/stats",
+      verifyToken,
+      verifyRole([RoleType.ORGANIZER]),
+      this.transactionController.getOrganizerTransactionStats
+    );
   }
 
   public getRouter(): Router {

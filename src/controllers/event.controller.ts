@@ -5,6 +5,9 @@ import {
   getEventByTitleService,
   updateEventService,
   deleteEventService,
+  getEventsByOrganizerService,
+  getOrganizerStatsService,
+  getOrganizerTransactionsService,
 } from "../service/event.service";
 import { cloudinaryUpload } from "../config/cloudinary";
 
@@ -72,6 +75,63 @@ export default class EventController {
         success: true,
         message: "Event retrieved successfully",
         data: event,
+      });
+    } catch (error: any) {
+      next(error);
+    }
+  }
+
+  public async getEventsByOrganizer(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const user = res.locals.decrypt;
+      const events = await getEventsByOrganizerService(user.id);
+
+      return res.status(200).json({
+        success: true,
+        message: "Organizer events retrieved successfully",
+        data: events,
+      });
+    } catch (error: any) {
+      next(error);
+    }
+  }
+
+  public async getOrganizerStats(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const user = res.locals.decrypt;
+      const stats = await getOrganizerStatsService(user.id);
+
+      return res.status(200).json({
+        success: true,
+        message: "Organizer statistics retrieved successfully",
+        data: stats,
+      });
+    } catch (error: any) {
+      next(error);
+    }
+  }
+
+  public async getOrganizerTransactions(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const user = res.locals.decrypt;
+      const transactions = await getOrganizerTransactionsService(user.id);
+
+      return res.status(200).json({
+        success: true,
+        message: "Organizer transactions retrieved successfully",
+        data: transactions,
       });
     } catch (error: any) {
       next(error);

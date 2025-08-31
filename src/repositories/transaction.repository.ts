@@ -1,8 +1,7 @@
 import { prisma } from "../config/prisma";
-import { PaymentStatusType, Prisma } from "../generated/prisma";
+import { PaymentStatusType } from "../generated/prisma";
 
 const FINAL_STATUSES: PaymentStatusType[] = [
-  // status that cant be changed
   PaymentStatusType.SUCCESS,
   PaymentStatusType.REJECTED,
   PaymentStatusType.EXPIRED,
@@ -15,14 +14,15 @@ const BLOCKED_UPLOAD_STATUSES: PaymentStatusType[] = [
 ];
 
 export class TransactionRepository {
+  // create transaction
   public static async createTransactionRepo(data: {
     user_id: number;
     coupon_id?: number | null;
     voucher_id?: number | null;
     point_id?: number | null;
-    points_used: number;
-    discount_voucher: number;
-    discount_coupon: number;
+    points_used?: number;
+    discount_voucher?: number;
+    discount_coupon?: number;
     total_price: number;
     transaction_expired: Date;
   }) {
@@ -32,12 +32,12 @@ export class TransactionRepository {
         coupon_id: data.coupon_id ?? null,
         voucher_id: data.voucher_id ?? null,
         point_id: data.point_id ?? null,
-        points_used: data.points_used,
-        discount_voucher: data.discount_voucher,
-        discount_coupon: data.discount_coupon,
+        points_used: data.points_used ?? 0,
+        discount_voucher: data.discount_voucher ?? 0,
+        discount_coupon: data.discount_coupon ?? 0,
         total_price: data.total_price,
         transaction_expired: data.transaction_expired,
-        status: "WAITING_PAYMENT",
+        status: PaymentStatusType.WAITING_PAYMENT,
       },
     });
   }
@@ -52,16 +52,12 @@ export class TransactionRepository {
   public static async updateTransactionRepo(id: number, data: any) {
     const transaction = await prisma.transactions.findUnique({ where: { id } });
     if (!transaction) throw new Error("Transaction not found");
-
     if (FINAL_STATUSES.includes(transaction.status)) {
       throw new Error(
         `Transaction already ${transaction.status}, cannot be updated`
       );
     }
-    return prisma.transactions.update({
-      where: { id },
-      data,
-    });
+    return prisma.transactions.update({ where: { id }, data });
   }
 
   public static async uploadPaymentProofRepo(
@@ -72,13 +68,12 @@ export class TransactionRepository {
     const transaction = await prisma.transactions.findUnique({
       where: { id: transactionId },
     });
-
     if (!transaction) throw new Error("Transaction not found");
     if (transaction.user_id !== userId) throw new Error("Unauthorized");
 
     if (BLOCKED_UPLOAD_STATUSES.includes(transaction.status)) {
       throw new Error(
-        `Transaction already ${transaction.status}, cannot upload proof again`
+        `Transaction already ${transaction.status}, cannot upload proof`
       );
     }
 
@@ -116,17 +111,16 @@ export class TransactionRepository {
   }
 
   public static async getExpiredTransactionsRepo() {
-    const now = new Date();
     return prisma.transactions.findMany({
       where: {
         status: PaymentStatusType.WAITING_PAYMENT,
-        transaction_expired: { lte: now },
+        transaction_expired: { lte: new Date() },
       },
     });
   }
 
   public static async getPendingAdminTransactionsRepo() {
-    const threeDaysAgo = new Date(Date.now() - 60 * 1000);
+    const threeDaysAgo = new Date(Date.now() - 10 * 60 * 1000);
     return prisma.transactions.findMany({
       where: {
         status: PaymentStatusType.WAITING_CONFIRMATION,
@@ -139,13 +133,7 @@ export class TransactionRepository {
     return prisma.transactions.findMany({
       where: { user_id: userId },
       include: {
-        tickets: {
-          include: {
-            ticket: {
-              include: { event: true },
-            },
-          },
-        },
+        tickets: { include: { ticket: { include: { event: true } } } },
         coupon: true,
         voucher: true,
         point: true,
@@ -155,11 +143,146 @@ export class TransactionRepository {
 
   public static async getTransactionsByEventIdRepo(eventId: number) {
     return prisma.transactions.findMany({
+      where: { tickets: { every: { ticket: { event_id: eventId } } } },
+      include: {
+        user: true,
+        tickets: { include: { ticket: { include: { event: true } } } },
+        coupon: true,
+        voucher: true,
+        point: true,
+      },
+    });
+  }
+
+  // New methods for organizer transaction management
+  public static async getOrganizerTransactionsRepo(organizerId: number) {
+    try {
+      // First, get all events owned by this organizer
+      const organizerEvents = await prisma.event.findMany({
+        where: { event_organizer_id: organizerId },
+        select: { id: true },
+      });
+
+      const eventIds = organizerEvents.map((event) => event.id);
+
+      if (eventIds.length === 0) {
+        console.log(`No events found for organizer ${organizerId}`);
+        return [];
+      }
+
+      console.log(
+        `Found ${eventIds.length} events for organizer ${organizerId}:`,
+        eventIds
+      );
+
+      // Get all tickets for these events
+      const eventTickets = await prisma.ticket.findMany({
+        where: { event_id: { in: eventIds } },
+        select: { id: true },
+      });
+
+      const ticketIds = eventTickets.map((ticket) => ticket.id);
+
+      if (ticketIds.length === 0) {
+        console.log(`No tickets found for events of organizer ${organizerId}`);
+        return [];
+      }
+
+      console.log(
+        `Found ${ticketIds.length} tickets for events of organizer ${organizerId}:`,
+        ticketIds
+      );
+
+      // Get all transactions that have these tickets
+      const transactions = await prisma.transactions.findMany({
+        where: {
+          tickets: {
+            some: {
+              ticket_id: { in: ticketIds },
+            },
+          },
+        },
+        include: {
+          user: true,
+          tickets: {
+            include: {
+              ticket: {
+                include: {
+                  event: true,
+                },
+              },
+            },
+          },
+          coupon: true,
+          voucher: true,
+          point: true,
+        },
+        orderBy: {
+          transaction_date_time: "desc",
+        },
+      });
+
+      console.log(
+        `Found ${transactions.length} transactions for organizer ${organizerId}`
+      );
+
+      return transactions;
+    } catch (error) {
+      console.error("Error in getOrganizerTransactionsRepo:", error);
+      throw error;
+    }
+  }
+
+  // Alternative simpler method for testing
+  public static async getOrganizerTransactionsSimpleRepo(organizerId: number) {
+    try {
+      // Get transactions through a simpler join approach
+      const transactions = await prisma.$queryRaw`
+        SELECT DISTINCT 
+          t.*,
+          u.username,
+          u.email,
+          tt.qty,
+          tt.subtotal_price,
+          tk.ticket_type,
+          tk.price,
+          e.event_name,
+          e.event_location
+        FROM "Transactions" t
+        JOIN "TransactionTicket" tt ON t.id = tt.transaction_id
+        JOIN "Ticket" tk ON tt.ticket_id = tk.id
+        JOIN "Event" e ON tk.event_id = e.id
+        JOIN "User" u ON t.user_id = u.id
+        WHERE e.event_organizer_id = ${organizerId}
+        ORDER BY t.transaction_date_time DESC
+      `;
+
+      console.log(
+        `Simple query found ${
+          Array.isArray(transactions) ? transactions.length : 0
+        } transactions for organizer ${organizerId}`
+      );
+
+      return transactions;
+    } catch (error) {
+      console.error("Error in getOrganizerTransactionsSimpleRepo:", error);
+      throw error;
+    }
+  }
+
+  public static async getOrganizerTransactionsByStatusRepo(
+    organizerId: number,
+    status: PaymentStatusType
+  ) {
+    return prisma.transactions.findMany({
       where: {
+        status: status,
         tickets: {
-          every: {
+          some: {
             ticket: {
-              event_id: eventId,
+              event: {
+                event_organizer_id: organizerId,
+              },
             },
           },
         },
@@ -169,7 +292,9 @@ export class TransactionRepository {
         tickets: {
           include: {
             ticket: {
-              include: { event: true },
+              include: {
+                event: true,
+              },
             },
           },
         },
@@ -177,6 +302,145 @@ export class TransactionRepository {
         voucher: true,
         point: true,
       },
+      orderBy: {
+        transaction_date_time: "desc",
+      },
     });
+  }
+
+  public static async acceptTransactionRepo(
+    transactionId: number,
+    organizerId: number
+  ) {
+    // Verify organizer owns the event
+    const transaction = await prisma.transactions.findUnique({
+      where: { id: transactionId },
+      include: {
+        tickets: {
+          include: {
+            ticket: {
+              include: {
+                event: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!transaction) throw new Error("Transaction not found");
+
+    const eventId = transaction.tickets[0]?.ticket.event_id;
+    if (!eventId) throw new Error("Invalid transaction");
+
+    const event = await prisma.event.findUnique({
+      where: { id: eventId },
+      include: { organizer: true },
+    });
+
+    if (!event || event.organizer.id !== organizerId) {
+      throw new Error("Unauthorized: You don't own this event");
+    }
+
+    if (transaction.status !== PaymentStatusType.WAITING_CONFIRMATION) {
+      throw new Error("Transaction is not waiting for confirmation");
+    }
+
+    return prisma.transactions.update({
+      where: { id: transactionId },
+      data: {
+        status: PaymentStatusType.SUCCESS,
+        is_accepted: true,
+      },
+    });
+  }
+
+  public static async rejectTransactionRepo(
+    transactionId: number,
+    organizerId: number,
+    rejectionReason?: string
+  ) {
+    // Verify organizer owns the event
+    const transaction = await prisma.transactions.findUnique({
+      where: { id: transactionId },
+      include: {
+        tickets: {
+          include: {
+            ticket: {
+              include: {
+                event: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!transaction) throw new Error("Transaction not found");
+
+    const eventId = transaction.tickets[0]?.ticket.event_id;
+    if (!eventId) throw new Error("Invalid transaction");
+
+    const event = await prisma.event.findUnique({
+      where: { id: eventId },
+      include: { organizer: true },
+    });
+
+    if (!event || event.organizer.id !== organizerId) {
+      throw new Error("Unauthorized: You don't own this event");
+    }
+
+    if (transaction.status !== PaymentStatusType.WAITING_CONFIRMATION) {
+      throw new Error("Transaction is not waiting for confirmation");
+    }
+
+    return prisma.transactions.update({
+      where: { id: transactionId },
+      data: {
+        status: PaymentStatusType.REJECTED,
+        is_accepted: false,
+      },
+    });
+  }
+
+  public static async getTransactionPaymentProofRepo(
+    transactionId: number,
+    organizerId: number
+  ) {
+    const transaction = await prisma.transactions.findUnique({
+      where: { id: transactionId },
+      include: {
+        user: true,
+        tickets: {
+          include: {
+            ticket: {
+              include: {
+                event: {
+                  include: {
+                    organizer: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!transaction) throw new Error("Transaction not found");
+
+    const eventId = transaction.tickets[0]?.ticket.event_id;
+    if (!eventId) throw new Error("Invalid transaction");
+
+    const event = await prisma.event.findUnique({
+      where: { id: eventId },
+      include: { organizer: true },
+    });
+
+    if (!event || event.organizer.id !== organizerId) {
+      throw new Error("Unauthorized: You don't own this event");
+    }
+
+    return transaction;
   }
 }
