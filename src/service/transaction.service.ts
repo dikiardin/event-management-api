@@ -81,7 +81,7 @@ export class TransactionService {
 
     // expired in 2h (sekarang +3 menit untuk testing)
     const transaction_expired = new Date();
-    transaction_expired.setMinutes(transaction_expired.getMinutes() + 3);
+    transaction_expired.setHours(transaction_expired.getHours() + 3);
 
     // create transaction
     const transaction = await TransactionRepository.createTransactionRepo({
@@ -213,5 +213,121 @@ export class TransactionService {
 
   public static async getTransactionsByEventIdService(eventId: number) {
     return TransactionRepository.getTransactionsByEventIdRepo(eventId);
+  }
+
+  // New methods for organizer transaction management
+  public static async getOrganizerTransactionsService(organizerId: number) {
+    return TransactionRepository.getOrganizerTransactionsRepo(organizerId);
+  }
+
+  // Alternative method for debugging and testing
+  public static async getOrganizerTransactionsSimpleService(
+    organizerId: number
+  ) {
+    return TransactionRepository.getOrganizerTransactionsSimpleRepo(
+      organizerId
+    );
+  }
+
+  public static async getOrganizerTransactionsByStatusService(
+    organizerId: number,
+    status: string
+  ) {
+    // Validate status
+    const validStatuses = Object.values($Enums.PaymentStatusType);
+    if (!validStatuses.includes(status as $Enums.PaymentStatusType)) {
+      throw new Error("Invalid payment status");
+    }
+
+    return TransactionRepository.getOrganizerTransactionsByStatusRepo(
+      organizerId,
+      status as $Enums.PaymentStatusType
+    );
+  }
+
+  public static async acceptTransactionService(
+    transactionId: number,
+    organizerId: number
+  ) {
+    try {
+      const transaction = await TransactionRepository.acceptTransactionRepo(
+        transactionId,
+        organizerId
+      );
+
+      // Log the acceptance for audit purposes
+      console.log(
+        `Transaction ${transactionId} accepted by organizer ${organizerId}`
+      );
+
+      return transaction;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  public static async rejectTransactionService(
+    transactionId: number,
+    organizerId: number,
+    rejectionReason?: string
+  ) {
+    try {
+      const transaction = await TransactionRepository.rejectTransactionRepo(
+        transactionId,
+        organizerId,
+        rejectionReason
+      );
+
+      // Log the rejection for audit purposes
+      console.log(
+        `Transaction ${transactionId} rejected by organizer ${organizerId}. Reason: ${
+          rejectionReason || "No reason provided"
+        }`
+      );
+
+      return transaction;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  public static async getTransactionPaymentProofService(
+    transactionId: number,
+    organizerId: number
+  ) {
+    return TransactionRepository.getTransactionPaymentProofRepo(
+      transactionId,
+      organizerId
+    );
+  }
+
+  public static async getOrganizerTransactionStatsService(organizerId: number) {
+    const allTransactions =
+      await TransactionRepository.getOrganizerTransactionsRepo(organizerId);
+
+    const stats = {
+      total: allTransactions.length,
+      waiting_confirmation: 0,
+      success: 0,
+      rejected: 0,
+      expired: 0,
+      cancelled: 0,
+      total_revenue: 0,
+      pending_revenue: 0,
+    };
+
+    allTransactions.forEach((transaction) => {
+      stats[transaction.status.toLowerCase() as keyof typeof stats]++;
+
+      if (transaction.status === $Enums.PaymentStatusType.SUCCESS) {
+        stats.total_revenue += transaction.total_price;
+      } else if (
+        transaction.status === $Enums.PaymentStatusType.WAITING_CONFIRMATION
+      ) {
+        stats.pending_revenue += transaction.total_price;
+      }
+    });
+
+    return stats;
   }
 }

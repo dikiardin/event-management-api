@@ -22,14 +22,47 @@ class EventRouter {
     this.route.post(
       "/create",
       verifyToken,
-      verifyRole([RoleType.ORGANIZER]), upload.single("event_thumbnail"),
+      verifyRole([RoleType.ORGANIZER]),
+      upload.single("event_thumbnail"),
       this.eventController.createEvent
     );
 
     // get all events (public)
     this.route.get("/", this.eventController.getAllEvent);
 
-    // get detail event (public)
+    // test endpoint tanpa middleware
+    this.route.get("/test", (req, res) => {
+      res.json({
+        message: "Test endpoint works!",
+        timestamp: new Date().toISOString(),
+      });
+    });
+
+    // get events by organizer (dashboard) - HARUS DI ATAS /detail/:title
+    this.route.get(
+      "/organizer",
+      verifyToken,
+      verifyRole([RoleType.ORGANIZER]),
+      this.eventController.getEventsByOrganizer
+    );
+
+    // get event statistics for organizer
+    this.route.get(
+      "/organizer/stats",
+      verifyToken,
+      verifyRole([RoleType.ORGANIZER]),
+      this.eventController.getOrganizerStats
+    );
+
+    // get transactions by organizer
+    this.route.get(
+      "/organizer/transactions",
+      verifyToken,
+      verifyRole([RoleType.ORGANIZER]),
+      this.eventController.getOrganizerTransactions
+    );
+
+    // get detail event (public) - HARUS DI BAWAH /organizer
     this.route.get("/detail/:title", this.eventController.getEventByTitle);
 
     // update event (hanya ORGANIZER)

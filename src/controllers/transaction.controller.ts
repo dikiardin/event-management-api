@@ -120,4 +120,162 @@ export class TransactionController {
       next(error);
     }
   }
+
+  // New methods for organizer transaction management
+  public async getOrganizerTransactions(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const userId = res.locals.decrypt?.id;
+      if (!userId) throw new Error("Unauthorized");
+
+      const transactions =
+        await TransactionService.getOrganizerTransactionsService(userId);
+      res.status(200).json({ success: true, transactions });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  // Alternative method for debugging and testing
+  public async getOrganizerTransactionsSimple(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const userId = res.locals.decrypt?.id;
+      if (!userId) throw new Error("Unauthorized");
+
+      const transactions =
+        await TransactionService.getOrganizerTransactionsSimpleService(userId);
+      res.status(200).json({ success: true, transactions });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  public async getOrganizerTransactionsByStatus(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const userId = res.locals.decrypt?.id;
+      if (!userId) throw new Error("Unauthorized");
+
+      const { status } = req.params;
+      if (!status) throw new Error("Status parameter is required");
+
+      const transactions =
+        await TransactionService.getOrganizerTransactionsByStatusService(
+          userId,
+          status
+        );
+      res.status(200).json({ success: true, transactions });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  public async acceptTransaction(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const userId = res.locals.decrypt?.id;
+      if (!userId) throw new Error("Unauthorized");
+
+      const { id } = req.params;
+      const transaction = await TransactionService.acceptTransactionService(
+        Number(id),
+        userId
+      );
+
+      res.status(200).json({
+        success: true,
+        message: "Transaction accepted successfully",
+        transaction,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  public async rejectTransaction(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const userId = res.locals.decrypt?.id;
+      if (!userId) throw new Error("Unauthorized");
+
+      const { id } = req.params;
+      const { rejection_reason } = req.body;
+
+      const transaction = await TransactionService.rejectTransactionService(
+        Number(id),
+        userId,
+        rejection_reason
+      );
+
+      res.status(200).json({
+        success: true,
+        message: "Transaction rejected successfully",
+        transaction,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  public async getTransactionPaymentProof(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const userId = res.locals.decrypt?.id;
+      if (!userId) throw new Error("Unauthorized");
+
+      const { id } = req.params;
+      const transaction =
+        await TransactionService.getTransactionPaymentProofService(
+          Number(id),
+          userId
+        );
+
+      res.status(200).json({
+        success: true,
+        transaction,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  public async getOrganizerTransactionStats(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const userId = res.locals.decrypt?.id;
+      if (!userId) throw new Error("Unauthorized");
+
+      const stats =
+        await TransactionService.getOrganizerTransactionStatsService(userId);
+
+      res.status(200).json({
+        success: true,
+        stats,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
