@@ -2,12 +2,12 @@ import { Request, Response, NextFunction } from "express";
 import {
   createEventService,
   getEventsService,
-  getEventByTitleService,
   updateEventService,
   deleteEventService,
   getEventsByOrganizerService,
   getOrganizerStatsService,
   getOrganizerTransactionsService,
+  getEventByNameService,
 } from "../service/event.service";
 import { cloudinaryUpload } from "../config/cloudinary";
 
@@ -54,32 +54,34 @@ export default class EventController {
       next(error);
     }
   }
+  
+  public async getEventByName(
+  req: Request<{ event_name: string }>,
+  res: Response,
+  next: NextFunction
+) {
+  try {
+    // Decode the URL-encoded event name here
+    const { event_name } = req.params;
+    const decodedName = decodeURIComponent(event_name); 
 
-  public async getEventByTitle(
-    req: Request<{ title: string }>,
-    res: Response,
-    next: NextFunction
-  ) {
-    try {
-      const { title } = req.params;
-
-      if (!title || typeof title !== "string") {
-        return res
-          .status(400)
-          .json({ success: false, message: "Invalid title" });
-      }
-
-      const event = await getEventByTitleService(title);
-
-      return res.status(200).json({
-        success: true,
-        message: "Event retrieved successfully",
-        data: event,
-      });
-    } catch (error: any) {
-      next(error);
+    if (!decodedName || typeof decodedName !== "string") {
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid event_name" });
     }
+
+    const event = await getEventByNameService(decodedName); 
+
+    return res.status(200).json({
+      success: true,
+      message: "Event retrieved successfully",
+      data: event,
+    });
+  } catch (error: any) {
+    next(error);
   }
+}
 
   public async getEventsByOrganizer(
     req: Request,

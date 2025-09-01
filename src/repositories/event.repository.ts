@@ -207,14 +207,20 @@ export const findEventByIdRepo = async (id: number) => {
   };
 };
 
-export const findEventByTitleRepo = async (title: string) => {
+export const findEventByNameRepo = async (event_name: string) => {
   return prisma.event.findFirst({
-    where: { event_name: title },
+    where: { event_name: { equals: event_name, mode: "insensitive" } },
     include: {
       organizer: true,
-      tickets: true,
       vouchers: true,
       reviews: true,
+      tickets: {
+        select: {
+          ticket_type: true,
+          price: true,   
+          available_qty: true,  
+        },
+      },
     },
   });
 };
