@@ -64,13 +64,23 @@ export class TransactionService {
 
     // points
     let discountPoint = 0;
+    let pointsToUse = 0;
     if (pointId) {
       const point = await prisma.point.findUnique({ where: { id: pointId } });
       if (!point) throw new Error("Point not found");
       if (point.user_id !== userId)
         throw new Error("Point not valid for this user");
       if (point.point_expired < new Date()) throw new Error("Point expired");
-      discountPoint = point.point_balance;
+
+      // Calculate how much point to use (can't exceed point balance or subtotal)
+      pointsToUse = Math.min(point.point_balance, subtotal);
+      discountPoint = pointsToUse;
+
+      // Validate if point is sufficient (optional: you can set minimum point usage)
+      if (pointsToUse < 1000) {
+        // Minimum 1000 point usage
+        throw new Error("Minimum point usage is 1000 points");
+      }
     }
 
     // total price
@@ -98,7 +108,12 @@ export class TransactionService {
 
     // remove coupon & points
     if (couponId) await prisma.coupon.delete({ where: { id: couponId } });
-    if (pointId) await prisma.point.delete({ where: { id: pointId } });
+    if (pointId) {
+      await prisma.point.update({
+        where: { id: pointId },
+        data: { point_balance: { decrement: discountPoint } },
+      });
+    }
 
     // reduce ticket qty + event seats
     for (const t of tickets) {
@@ -328,6 +343,6 @@ export class TransactionService {
       }
     });
 
-    return stats;
-  }
+    return stats;
+  }
 }
