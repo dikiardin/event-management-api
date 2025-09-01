@@ -151,49 +151,31 @@ export class TransactionRepository {
         voucher: true,
         point: true,
       },
+      orderBy: {
+        transaction_date_time: "desc",
+      },
     });
   }
 
   // New methods for organizer transaction management
   public static async getOrganizerTransactionsRepo(organizerId: number) {
     try {
-      // First, get all events owned by this organizer
       const organizerEvents = await prisma.event.findMany({
         where: { event_organizer_id: organizerId },
         select: { id: true },
       });
 
       const eventIds = organizerEvents.map((event) => event.id);
+      if (eventIds.length === 0) return [];
 
-      if (eventIds.length === 0) {
-        console.log(`No events found for organizer ${organizerId}`);
-        return [];
-      }
-
-      console.log(
-        `Found ${eventIds.length} events for organizer ${organizerId}:`,
-        eventIds
-      );
-
-      // Get all tickets for these events
       const eventTickets = await prisma.ticket.findMany({
         where: { event_id: { in: eventIds } },
         select: { id: true },
       });
 
       const ticketIds = eventTickets.map((ticket) => ticket.id);
+      if (ticketIds.length === 0) return [];
 
-      if (ticketIds.length === 0) {
-        console.log(`No tickets found for events of organizer ${organizerId}`);
-        return [];
-      }
-
-      console.log(
-        `Found ${ticketIds.length} tickets for events of organizer ${organizerId}:`,
-        ticketIds
-      );
-
-      // Get all transactions that have these tickets
       const transactions = await prisma.transactions.findMany({
         where: {
           tickets: {
@@ -222,10 +204,6 @@ export class TransactionRepository {
         },
       });
 
-      console.log(
-        `Found ${transactions.length} transactions for organizer ${organizerId}`
-      );
-
       return transactions;
     } catch (error) {
       console.error("Error in getOrganizerTransactionsRepo:", error);
@@ -233,10 +211,8 @@ export class TransactionRepository {
     }
   }
 
-  // Alternative simpler method for testing
   public static async getOrganizerTransactionsSimpleRepo(organizerId: number) {
     try {
-      // Get transactions through a simpler join approach
       const transactions = await prisma.$queryRaw`
         SELECT DISTINCT 
           t.*,
@@ -256,12 +232,6 @@ export class TransactionRepository {
         WHERE e.event_organizer_id = ${organizerId}
         ORDER BY t.transaction_date_time DESC
       `;
-
-      console.log(
-        `Simple query found ${
-          Array.isArray(transactions) ? transactions.length : 0
-        } transactions for organizer ${organizerId}`
-      );
 
       return transactions;
     } catch (error) {
@@ -312,7 +282,6 @@ export class TransactionRepository {
     transactionId: number,
     organizerId: number
   ) {
-    // Verify organizer owns the event
     const transaction = await prisma.transactions.findUnique({
       where: { id: transactionId },
       include: {
@@ -360,7 +329,6 @@ export class TransactionRepository {
     organizerId: number,
     rejectionReason?: string
   ) {
-    // Verify organizer owns the event
     const transaction = await prisma.transactions.findUnique({
       where: { id: transactionId },
       include: {

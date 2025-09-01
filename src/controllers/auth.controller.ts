@@ -52,6 +52,7 @@ export default class AuthController {
       next(error);
       return res.status(error.status || 500).json({
         message: error.message || "Internal Server Error",
+        field: error.field || null,
       });
     }
   }
@@ -61,8 +62,12 @@ export default class AuthController {
       const { email, password } = req.body;
       const result = await loginService(email, password);
       res.status(200).json({ success: true, data: result });
-    } catch (error) {
+    } catch (error: any) {
       next(error);
+      return res.status(error.status || 500).json({
+        message: error.message || "Internal Server Error",
+        field: error.field || null,
+      });
     }
   }
 
