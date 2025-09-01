@@ -9,19 +9,21 @@ export class TransactionService {
     userId: number,
     tickets: { ticket_id: number; qty: number }[],
     couponId?: number,
-    voucherId?: number
+    voucherId?: number,
+    pointId?: number
   ) {
     // expired in 3h
     const transaction_expired = new Date();
     transaction_expired.setHours(transaction_expired.getHours() + 3);
 
-    return TransactionRepository.createTransactionRepo(
-      userId,
-      tickets,
-      transaction_expired,
-      couponId,
-      voucherId
-    );
+    return TransactionRepository.createTransactionRepo({
+      user_id: userId,
+      coupon_id: couponId ?? null,
+      voucher_id: voucherId ?? null,
+      point_id: pointId ?? null,
+      total_price: 0, // This should be calculated based on tickets
+      transaction_expired: transaction_expired,
+    });
   }
 
   // get transaction by id
@@ -31,7 +33,12 @@ export class TransactionService {
 
   // get user transaction
   public static async getUserTransactionService(userId: number) {
-    return TransactionRepository.getUserTransactionRepo(userId);
+    return TransactionRepository.getTransactionsByUserIdRepo(userId);
+  }
+
+  // get transactions by user id (alias for getUserTransactionService)
+  public static async getTransactionsByUserIdService(userId: number) {
+    return TransactionRepository.getTransactionsByUserIdRepo(userId);
   }
 
   // cancel transaction
@@ -45,12 +52,15 @@ export class TransactionService {
   // upload payment proof
   public static async uploadPaymentProofService(
     transactionId: number,
-    file: Express.Multer.File
+    file: Express.Multer.File,
+    userId: number
   ) {
-    const imageUrl = await cloudinaryUpload(file);
+    const uploadResult = await cloudinaryUpload(file);
+    const imageUrl = uploadResult.secure_url;
     return TransactionRepository.uploadPaymentProofRepo(
       transactionId,
-      imageUrl
+      imageUrl,
+      userId
     );
   }
 
@@ -163,5 +173,37 @@ export class TransactionService {
     });
 
     return stats;
+  }
+
+  // Auto-expire transactions that are waiting for payment
+  public static async autoExpireTransactionsService() {
+    const expiredTransactions =
+      await TransactionRepository.getExpiredTransactionsRepo();
+
+    for (const transaction of expiredTransactions) {
+      await TransactionRepository.updateTransactionRepo(transaction.id, {
+        status: $Enums.PaymentStatusType.EXPIRED,
+      });
+      console.log(`Transaction ${transaction.id} expired automatically`);
+    }
+
+    return expiredTransactions.length;
+  }
+
+  // Auto-cancel admin pending transactions after 3 days
+  public static async autoCancelAdminPendingService() {
+    const pendingTransactions =
+      await TransactionRepository.getPendingAdminTransactionsRepo();
+
+    for (const transaction of pendingTransactions) {
+      await TransactionRepository.updateTransactionRepo(transaction.id, {
+        status: $Enums.PaymentStatusType.EXPIRED,
+      });
+      console.log(
+        `Transaction ${transaction.id} auto-cancelled due to admin pending timeout`
+      );
+    }
+
+    return pendingTransactions.length;
   }
 }

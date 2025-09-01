@@ -47,8 +47,6 @@ export class TransactionController {
         req.file,
         userId
       );
-      if (transaction.user_id !== userId)
-        throw new Error("Unauthorized upload");
 
       res.status(200).json({
         success: true,
