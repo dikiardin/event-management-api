@@ -79,9 +79,9 @@ export class TransactionService {
     const totalPrice =
       subtotal - discountPoint - voucherDiscountAmount - couponDiscountAmount;
 
-    // expired in 2h (sekarang +3 menit untuk testing)
+    // expired in 2h 
     const transaction_expired = new Date();
-    transaction_expired.setHours(transaction_expired.getHours() + 3);
+    transaction_expired.setHours(transaction_expired.getHours() + 2);
 
     // create transaction
     const transaction = await TransactionRepository.createTransactionRepo({
