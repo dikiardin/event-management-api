@@ -328,6 +328,6 @@ export class TransactionService {
       }
     });
 
-    return stats;
-  }
+    return stats;
+  }
 }
