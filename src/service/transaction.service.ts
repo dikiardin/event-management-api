@@ -15,6 +15,13 @@ export class TransactionService {
     if (!tickets || tickets.length === 0)
       throw new Error("Tickets cannot be empty");
 
+    console.log("=== DEBUG TRANSACTION CREATION ===");
+    console.log("User ID:", userId);
+    console.log("Tickets:", tickets);
+    console.log("Coupon ID:", couponId);
+    console.log("Voucher ID:", voucherId);
+    console.log("Point ID:", pointId);
+
     // subtotal (before discount)
     let subtotal = 0;
     let eventId: number | null = null;
@@ -31,7 +38,13 @@ export class TransactionService {
         throw new Error("All tickets must belong to the same event");
       }
       subtotal += ticket.price * t.qty;
+      console.log(
+        `Ticket ${t.ticket_id}: Price=${ticket.price}, Qty=${t.qty}, Subtotal=${
+          ticket.price * t.qty
+        }`
+      );
     }
+    console.log("Total Subtotal:", subtotal);
 
     // voucher
     let discountVoucher = 0;
@@ -45,6 +58,8 @@ export class TransactionService {
       if (voucher.event_id !== eventId)
         throw new Error("Voucher does not belong to this event");
       discountVoucher = voucher.discount_value;
+      console.log("Voucher found:", voucher);
+      console.log("Voucher discount value:", discountVoucher);
     }
 
     // coupon
@@ -60,6 +75,8 @@ export class TransactionService {
       threeMonthsAfter.setMonth(threeMonthsAfter.getMonth() + 3);
       if (new Date() > threeMonthsAfter) throw new Error("Coupon expired");
       discountCoupon = coupon.discount_value;
+      console.log("Coupon found:", coupon);
+      console.log("Coupon discount value:", discountCoupon);
     }
 
     // points
@@ -71,6 +88,8 @@ export class TransactionService {
         throw new Error("Point not valid for this user");
       if (point.point_expired < new Date()) throw new Error("Point expired");
       discountPoint = point.point_balance;
+      console.log("Point found:", point);
+      console.log("Point balance:", discountPoint);
     }
 
     // total price
@@ -78,6 +97,15 @@ export class TransactionService {
     const couponDiscountAmount = subtotal * (discountCoupon / 100);
     const totalPrice =
       subtotal - discountPoint - voucherDiscountAmount - couponDiscountAmount;
+
+    console.log("=== CALCULATION SUMMARY ===");
+    console.log("Subtotal:", subtotal);
+    console.log("Voucher discount (%):", discountVoucher);
+    console.log("Voucher discount amount:", voucherDiscountAmount);
+    console.log("Coupon discount (%):", discountCoupon);
+    console.log("Coupon discount amount:", couponDiscountAmount);
+    console.log("Point discount:", discountPoint);
+    console.log("Total Price:", totalPrice);
 
     // expired in 2h
     const transaction_expired = new Date();
@@ -95,6 +123,9 @@ export class TransactionService {
       total_price: totalPrice,
       transaction_expired,
     });
+
+    console.log("Transaction created:", transaction);
+    console.log("=== END DEBUG ===");
 
     // remove coupon & points
     if (couponId) await prisma.coupon.delete({ where: { id: couponId } });
