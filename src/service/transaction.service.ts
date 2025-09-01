@@ -12,14 +12,8 @@ export class TransactionService {
     voucherId?: number,
     pointId?: number
   ) {
-<<<<<<< HEAD
-    // expired in 3h
-    const transaction_expired = new Date();
-    transaction_expired.setMinutes(transaction_expired.getMinutes() + 1);
-=======
     if (!tickets || tickets.length === 0)
       throw new Error("Tickets cannot be empty");
->>>>>>> 01a8c858d22eec90fa56c5d78e4515050ff3d542
 
     // subtotal (before discount)
     let subtotal = 0;
@@ -85,7 +79,7 @@ export class TransactionService {
     const totalPrice =
       subtotal - discountPoint - voucherDiscountAmount - couponDiscountAmount;
 
-    // expired in 2h 
+    // expired in 2h
     const transaction_expired = new Date();
     transaction_expired.setHours(transaction_expired.getHours() + 2);
 
