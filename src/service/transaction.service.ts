@@ -14,7 +14,7 @@ export class TransactionService {
   ) {
     // expired in 3h
     const transaction_expired = new Date();
-    transaction_expired.setHours(transaction_expired.getHours() + 3);
+    transaction_expired.setMinutes(transaction_expired.getMinutes() + 1);
 
     return TransactionRepository.createTransactionRepo({
       user_id: userId,
