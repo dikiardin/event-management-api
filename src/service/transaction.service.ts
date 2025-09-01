@@ -12,41 +12,128 @@ export class TransactionService {
     voucherId?: number,
     pointId?: number
   ) {
+<<<<<<< HEAD
     // expired in 3h
     const transaction_expired = new Date();
     transaction_expired.setMinutes(transaction_expired.getMinutes() + 1);
+=======
+    if (!tickets || tickets.length === 0)
+      throw new Error("Tickets cannot be empty");
+>>>>>>> 01a8c858d22eec90fa56c5d78e4515050ff3d542
 
-    return TransactionRepository.createTransactionRepo({
+    // subtotal (before discount)
+    let subtotal = 0;
+    let eventId: number | null = null;
+    for (const t of tickets) {
+      const ticket = await prisma.ticket.findUnique({
+        where: { id: t.ticket_id },
+      });
+      if (!ticket) throw new Error(`Ticket ${t.ticket_id} not found`);
+      if (ticket.available_qty < t.qty)
+        throw new Error(`Not enough seats for ticket ${t.ticket_id}`);
+      if (!eventId) {
+        eventId = ticket.event_id;
+      } else if (eventId !== ticket.event_id) {
+        throw new Error("All tickets must belong to the same event");
+      }
+      subtotal += ticket.price * t.qty;
+    }
+
+    // voucher
+    let discountVoucher = 0;
+    if (voucherId) {
+      const voucher = await prisma.voucher.findUnique({
+        where: { id: voucherId },
+      });
+      if (!voucher) throw new Error("Voucher not found");
+      if (voucher.voucher_end_date < new Date())
+        throw new Error("Voucher expired");
+      if (voucher.event_id !== eventId)
+        throw new Error("Voucher does not belong to this event");
+      discountVoucher = voucher.discount_value;
+    }
+
+    // coupon
+    let discountCoupon = 0;
+    if (couponId) {
+      const coupon = await prisma.coupon.findUnique({
+        where: { id: couponId },
+      });
+      if (!coupon) throw new Error("Coupon not found");
+      if (coupon.user_id !== userId)
+        throw new Error("Coupon not valid for this user");
+      const threeMonthsAfter = new Date(coupon.created_at);
+      threeMonthsAfter.setMonth(threeMonthsAfter.getMonth() + 3);
+      if (new Date() > threeMonthsAfter) throw new Error("Coupon expired");
+      discountCoupon = coupon.discount_value;
+    }
+
+    // points
+    let discountPoint = 0;
+    if (pointId) {
+      const point = await prisma.point.findUnique({ where: { id: pointId } });
+      if (!point) throw new Error("Point not found");
+      if (point.user_id !== userId)
+        throw new Error("Point not valid for this user");
+      if (point.point_expired < new Date()) throw new Error("Point expired");
+      discountPoint = point.point_balance;
+    }
+
+    // total price
+    const voucherDiscountAmount = subtotal * (discountVoucher / 100);
+    const couponDiscountAmount = subtotal * (discountCoupon / 100);
+    const totalPrice =
+      subtotal - discountPoint - voucherDiscountAmount - couponDiscountAmount;
+
+    // expired in 2h 
+    const transaction_expired = new Date();
+    transaction_expired.setHours(transaction_expired.getHours() + 2);
+
+    // create transaction
+    const transaction = await TransactionRepository.createTransactionRepo({
       user_id: userId,
       coupon_id: couponId ?? null,
       voucher_id: voucherId ?? null,
       point_id: pointId ?? null,
-      total_price: 0, // This should be calculated based on tickets
-      transaction_expired: transaction_expired,
+      points_used: discountPoint,
+      discount_voucher: discountVoucher,
+      discount_coupon: discountCoupon,
+      total_price: totalPrice,
+      transaction_expired,
     });
-  }
 
-  // get transaction by id
-  public static async getTransactionByIdService(id: number) {
-    return TransactionRepository.getTransactionByIdRepo(id);
-  }
+    // remove coupon & points
+    if (couponId) await prisma.coupon.delete({ where: { id: couponId } });
+    if (pointId) await prisma.point.delete({ where: { id: pointId } });
 
-  // get user transaction
-  public static async getUserTransactionService(userId: number) {
-    return TransactionRepository.getTransactionsByUserIdRepo(userId);
-  }
+    // reduce ticket qty + event seats
+    for (const t of tickets) {
+      const ticket = await prisma.ticket.findUnique({
+        where: { id: t.ticket_id },
+      });
+      if (!ticket) continue;
 
-  // get transactions by user id (alias for getUserTransactionService)
-  public static async getTransactionsByUserIdService(userId: number) {
-    return TransactionRepository.getTransactionsByUserIdRepo(userId);
-  }
+      await prisma.transactionTicket.create({
+        data: {
+          transaction_id: transaction.id,
+          ticket_id: t.ticket_id,
+          qty: t.qty,
+          subtotal_price: ticket.price * t.qty,
+        },
+      });
 
-  // cancel transaction
-  public static async cancelTransactionService(
-    transactionId: number,
-    userId: number
-  ) {
-    return TransactionRepository.cancelTransactionRepo(transactionId, userId);
+      await prisma.ticket.update({
+        where: { id: t.ticket_id },
+        data: { available_qty: ticket.available_qty - t.qty },
+      });
+
+      await prisma.event.update({
+        where: { id: ticket.event_id },
+        data: { available_seats: { decrement: t.qty } },
+      });
+    }
+
+    return transaction;
   }
 
   // upload payment proof
@@ -55,26 +142,91 @@ export class TransactionService {
     file: Express.Multer.File,
     userId: number
   ) {
-    const uploadResult = await cloudinaryUpload(file);
-    const imageUrl = uploadResult.secure_url;
+    if (!file) throw { status: 400, message: "No file provided" };
+    const result = await cloudinaryUpload(file);
+
     return TransactionRepository.uploadPaymentProofRepo(
       transactionId,
-      imageUrl,
+      result.secure_url,
       userId
     );
   }
 
-  // get all transactions by eventId
+  // rollback seats
+  private static async rollbackSeatsAndTickets(transactionId: number) {
+    const transaction = await TransactionRepository.getTransactionByIdRepo(
+      transactionId
+    );
+    if (!transaction) throw new Error("Transaction not found");
+
+    for (const t of transaction.tickets) {
+      const ticket = await prisma.ticket.update({
+        where: { id: t.ticket_id },
+        data: { available_qty: { increment: t.qty } },
+      });
+
+      await prisma.event.update({
+        where: { id: ticket.event_id },
+        data: { available_seats: { increment: t.qty } },
+      });
+    }
+  }
+
+  // cancel by user
+  public static async cancelTransactionService(
+    transactionId: number,
+    userId: number
+  ) {
+    const transaction = await TransactionRepository.getTransactionByIdRepo(
+      transactionId
+    );
+    if (!transaction) throw new Error("Transaction not found");
+    if (transaction.user_id !== userId) throw new Error("Unauthorized cancel");
+
+    await this.rollbackSeatsAndTickets(transactionId);
+    return TransactionRepository.updateTransactionRepo(transactionId, {
+      status: $Enums.PaymentStatusType.CANCELLED,
+    });
+  }
+
+  // auto expire 2h
+  public static async autoExpireTransactionsService() {
+    const expiredTransactions =
+      await TransactionRepository.getExpiredTransactionsRepo();
+    for (const tx of expiredTransactions) {
+      await this.rollbackSeatsAndTickets(tx.id);
+      await TransactionRepository.updateTransactionRepo(tx.id, {
+        status: $Enums.PaymentStatusType.EXPIRED,
+      });
+    }
+  }
+
+  // auto cancel 3d
+  public static async autoCancelAdminPendingService() {
+    const pendingTransactions =
+      await TransactionRepository.getPendingAdminTransactionsRepo();
+    for (const tx of pendingTransactions) {
+      await this.rollbackSeatsAndTickets(tx.id);
+      await TransactionRepository.updateTransactionRepo(tx.id, {
+        status: $Enums.PaymentStatusType.CANCELLED,
+      });
+    }
+  }
+
+  public static async getTransactionsByUserIdService(userId: number) {
+    return TransactionRepository.getTransactionsByUserIdRepo(userId);
+  }
+
   public static async getTransactionsByEventIdService(eventId: number) {
     return TransactionRepository.getTransactionsByEventIdRepo(eventId);
   }
 
-  // Organizer: get all transactions
+  // New methods for organizer transaction management
   public static async getOrganizerTransactionsService(organizerId: number) {
     return TransactionRepository.getOrganizerTransactionsRepo(organizerId);
   }
 
-  // Organizer: get simplified transaction list
+  // Alternative method for debugging and testing
   public static async getOrganizerTransactionsSimpleService(
     organizerId: number
   ) {
@@ -83,11 +235,11 @@ export class TransactionService {
     );
   }
 
-  // Organizer: get transactions by status
   public static async getOrganizerTransactionsByStatusService(
     organizerId: number,
     status: string
   ) {
+    // Validate status
     const validStatuses = Object.values($Enums.PaymentStatusType);
     if (!validStatuses.includes(status as $Enums.PaymentStatusType)) {
       throw new Error("Invalid payment status");
@@ -99,41 +251,52 @@ export class TransactionService {
     );
   }
 
-  // Organizer: accept transaction
   public static async acceptTransactionService(
     transactionId: number,
     organizerId: number
   ) {
-    const transaction = await TransactionRepository.acceptTransactionRepo(
-      transactionId,
-      organizerId
-    );
-    console.log(
-      `Transaction ${transactionId} accepted by organizer ${organizerId}`
-    );
-    return transaction;
+    try {
+      const transaction = await TransactionRepository.acceptTransactionRepo(
+        transactionId,
+        organizerId
+      );
+
+      // Log the acceptance for audit purposes
+      console.log(
+        `Transaction ${transactionId} accepted by organizer ${organizerId}`
+      );
+
+      return transaction;
+    } catch (error) {
+      throw error;
+    }
   }
 
-  // Organizer: reject transaction
   public static async rejectTransactionService(
     transactionId: number,
     organizerId: number,
     rejectionReason?: string
   ) {
-    const transaction = await TransactionRepository.rejectTransactionRepo(
-      transactionId,
-      organizerId,
-      rejectionReason
-    );
-    console.log(
-      `Transaction ${transactionId} rejected by organizer ${organizerId}. Reason: ${
-        rejectionReason || "No reason provided"
-      }`
-    );
-    return transaction;
+    try {
+      const transaction = await TransactionRepository.rejectTransactionRepo(
+        transactionId,
+        organizerId,
+        rejectionReason
+      );
+
+      // Log the rejection for audit purposes
+      console.log(
+        `Transaction ${transactionId} rejected by organizer ${organizerId}. Reason: ${
+          rejectionReason || "No reason provided"
+        }`
+      );
+
+      return transaction;
+    } catch (error) {
+      throw error;
+    }
   }
 
-  // Organizer: get payment proof
   public static async getTransactionPaymentProofService(
     transactionId: number,
     organizerId: number
@@ -144,7 +307,6 @@ export class TransactionService {
     );
   }
 
-  // Organizer: get transaction statistics
   public static async getOrganizerTransactionStatsService(organizerId: number) {
     const allTransactions =
       await TransactionRepository.getOrganizerTransactionsRepo(organizerId);
@@ -173,37 +335,5 @@ export class TransactionService {
     });
 
     return stats;
-  }
-
-  // Auto-expire transactions that are waiting for payment
-  public static async autoExpireTransactionsService() {
-    const expiredTransactions =
-      await TransactionRepository.getExpiredTransactionsRepo();
-
-    for (const transaction of expiredTransactions) {
-      await TransactionRepository.updateTransactionRepo(transaction.id, {
-        status: $Enums.PaymentStatusType.EXPIRED,
-      });
-      console.log(`Transaction ${transaction.id} expired automatically`);
-    }
-
-    return expiredTransactions.length;
-  }
-
-  // Auto-cancel admin pending transactions after 3 days
-  public static async autoCancelAdminPendingService() {
-    const pendingTransactions =
-      await TransactionRepository.getPendingAdminTransactionsRepo();
-
-    for (const transaction of pendingTransactions) {
-      await TransactionRepository.updateTransactionRepo(transaction.id, {
-        status: $Enums.PaymentStatusType.EXPIRED,
-      });
-      console.log(
-        `Transaction ${transaction.id} auto-cancelled due to admin pending timeout`
-      );
-    }
-
-    return pendingTransactions.length;
   }
 }
