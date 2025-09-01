@@ -63,7 +63,7 @@ class EventRouter {
     );
 
     // get detail event (public) - HARUS DI BAWAH /organizer
-    this.route.get("/detail/:title", this.eventController.getEventByTitle);
+    this.route.get("/detail/:event_name", this.eventController.getEventByName);
 
     // update event (hanya ORGANIZER)
     this.route.patch(
