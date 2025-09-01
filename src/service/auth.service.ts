@@ -20,7 +20,15 @@ export const registerService = async (data: {
 
   // cek email duplicate
   const existingUser = await findByEmail(email);
-  if (existingUser) throw { status: 400, message: "Email already registered" };
+  if (existingUser)
+    throw { status: 400, message: "Email already registered", field: "email" };
+
+  // cek username duplicate
+  const existingUsername = await prisma.user.findFirst({
+    where: { username },
+  });
+  if (existingUsername)
+    throw { status: 400, message: "Username already taken", field: "username" };
 
   // hash password
   const hashedPassword = await bcrypt.hash(password, 10);
@@ -76,10 +84,16 @@ export const registerService = async (data: {
 
 export const loginService = async (email: string, password: string) => {
   const user = await findByEmail(email);
-  if (!user) throw new Error("Invalid email or password");
+  if (!user)
+    throw { status: 401, message: "Invalid email or password", field: "email" };
 
   const isPasswordValid = await bcrypt.compare(password, user.password);
-  if (!isPasswordValid) throw new Error("Invalid email or password");
+  if (!isPasswordValid)
+    throw {
+      status: 401,
+      message: "Invalid email or password",
+      field: "password",
+    };
 
   // tambah role ke payload token
   const token = createToken({ id: user.id, role: user.role }, "24h");
