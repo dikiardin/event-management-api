@@ -2,6 +2,7 @@ import { prisma } from "../config/prisma";
 import { TransactionRepository } from "../repositories/transaction.repository";
 import { $Enums } from "../generated/prisma";
 import { cloudinaryUpload } from "../config/cloudinary";
+import { EmailService } from "./email.service";
 
 export class TransactionService {
   // create new transaction
@@ -267,6 +268,28 @@ export class TransactionService {
         `Transaction ${transactionId} accepted by organizer ${organizerId}`
       );
 
+      // Send acceptance notification email
+      try {
+        // Get user email from transaction
+        const transactionWithUser = await prisma.transactions.findUnique({
+          where: { id: transactionId },
+          include: { user: true },
+        });
+
+        if (transactionWithUser && transactionWithUser.user) {
+          await EmailService.sendTransactionAcceptedEmail(
+            transactionId,
+            transactionWithUser.user.email
+          );
+        }
+      } catch (emailError) {
+        // Log email error but don't fail the transaction acceptance
+        console.error(
+          `Failed to send acceptance email for transaction ${transactionId}:`,
+          emailError
+        );
+      }
+
       return transaction;
     } catch (error) {
       throw error;
@@ -291,6 +314,29 @@ export class TransactionService {
           rejectionReason || "No reason provided"
         }`
       );
+
+      // Send rejection notification email
+      try {
+        // Get user email from transaction
+        const transactionWithUser = await prisma.transactions.findUnique({
+          where: { id: transactionId },
+          include: { user: true },
+        });
+
+        if (transactionWithUser && transactionWithUser.user) {
+          await EmailService.sendTransactionRejectedEmail(
+            transactionId,
+            transactionWithUser.user.email,
+            rejectionReason
+          );
+        }
+      } catch (emailError) {
+        // Log email error but don't fail the transaction rejection
+        console.error(
+          `Failed to send rejection email for transaction ${transactionId}:`,
+          emailError
+        );
+      }
 
       return transaction;
     } catch (error) {

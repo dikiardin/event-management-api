@@ -342,6 +342,10 @@ export class TransactionRepository {
             },
           },
         },
+        user: true,
+        voucher: true,
+        coupon: true,
+        point: true,
       },
     });
 
@@ -363,12 +367,71 @@ export class TransactionRepository {
       throw new Error("Transaction is not waiting for confirmation");
     }
 
-    return prisma.transactions.update({
-      where: { id: transactionId },
-      data: {
-        status: PaymentStatusType.REJECTED,
-        is_accepted: false,
-      },
+    // Use transaction to ensure all operations succeed or fail together
+    return await prisma.$transaction(async (tx) => {
+      // 1. Update transaction status to rejected
+      const updatedTransaction = await tx.transactions.update({
+        where: { id: transactionId },
+        data: {
+          status: PaymentStatusType.REJECTED,
+          is_accepted: false,
+        },
+      });
+
+      // 2. Restore seats and ticket quantities
+      for (const ticketTransaction of transaction.tickets) {
+        const ticket = ticketTransaction.ticket;
+
+        // Restore ticket available quantity
+        await tx.ticket.update({
+          where: { id: ticket.id },
+          data: { available_qty: { increment: ticketTransaction.qty } },
+        });
+
+        // Restore event available seats
+        await tx.event.update({
+          where: { id: ticket.event_id },
+          data: { available_seats: { increment: ticketTransaction.qty } },
+        });
+      }
+
+      // 3. Restore points if they were used
+      if (transaction.point_id && transaction.points_used > 0) {
+        await tx.point.create({
+          data: {
+            user_id: transaction.user_id,
+            point_balance: transaction.points_used,
+            point_expired: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000), // 90 days from now
+          },
+        });
+      }
+
+      // 4. Restore voucher if it was used
+      if (transaction.voucher_id && transaction.voucher) {
+        await tx.voucher.create({
+          data: {
+            event_id: transaction.voucher.event_id,
+            voucher_code: transaction.voucher.voucher_code,
+            discount_value: transaction.voucher.discount_value,
+            voucher_start_date: transaction.voucher.voucher_start_date,
+            voucher_end_date: transaction.voucher.voucher_end_date,
+          },
+        });
+      }
+
+      // 5. Restore coupon if it was used
+      if (transaction.coupon_id && transaction.coupon) {
+        await tx.coupon.create({
+          data: {
+            user_id: transaction.user_id,
+            coupon_code: transaction.coupon.coupon_code,
+            discount_value: transaction.coupon.discount_value,
+            created_at: new Date(), // New creation date
+          },
+        });
+      }
+
+      return updatedTransaction;
     });
   }
 
