@@ -85,6 +85,19 @@ export class TransactionController {
     }
   }
 
+  // get transaction by id
+    public static async getTransactionById(req: Request, res: Response, next: NextFunction) {
+    try {
+      const id = Number(req.params.id);
+      if (isNaN(id)) throw { status: 400, message: "Invalid transaction ID" };
+
+      const transaction = await TransactionService.getTransactionByIdService(id);
+      res.status(200).json(transaction);
+    } catch (error) {
+      next(error);
+    }
+  }
+
   // get transactions by user id
   public async getTransactionsByUserId(
     req: Request,

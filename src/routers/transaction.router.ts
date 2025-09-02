@@ -35,6 +35,11 @@ export class TransactionRouter {
       this.transactionController.cancelTransaction
     );
     this.route.get(
+      "/:id",
+      verifyToken,
+      TransactionController.getTransactionById
+    );
+    this.route.get(
       "/user/:userId",
       verifyToken,
       this.transactionController.getTransactionsByUserId

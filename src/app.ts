@@ -8,7 +8,11 @@ import VoucherRouter from "./routers/voucher.router";
 import ProfileRouter from "./routers/profile.router";
 import { TransactionRouter } from "./routers/transaction.router";
 import { startTransactionJob } from "./job/transactionJob";
+import { startCleanupJobs } from "./job/cleanupJob";
 import { ReviewRouter } from "./routers/review.router";
+import TicketRouter from "./routers/ticket.router";
+import CouponRouter from "./routers/coupon.router";
+import PointRouter from "./routers/point.router";
 
 const PORT: string = process.env.PORT || "8181";
 
@@ -47,12 +51,18 @@ class App {
     const profileRouter: ProfileRouter = new ProfileRouter();
     const transactionRouter: TransactionRouter = new TransactionRouter();
     const reviewRouter: ReviewRouter = new ReviewRouter();
+    const ticketRouter: TicketRouter = new TicketRouter();
+    const couponRouter: CouponRouter = new CouponRouter();
+    const pointRouter: PointRouter = new PointRouter();
     this.app.use("/auth", authRouter.getRouter());
     this.app.use("/event", eventRouter.getRouter());
     this.app.use("/voucher", voucherRouter.getRouter());
     this.app.use("/profile", profileRouter.getRouter());
     this.app.use("/transaction", transactionRouter.getRouter());
     this.app.use("/review", reviewRouter.getRouter());
+    this.app.use("/ticket", ticketRouter.getRouter());
+    this.app.use("/coupon", couponRouter.getRouter());
+    this.app.use("/point", pointRouter.getRouter());
   }
 
   private errorHandling(): void {
@@ -103,6 +113,7 @@ class App {
     this.app.listen(PORT, () => {
       console.log(`API Running: http://localhost:${PORT}`);
       startTransactionJob();
+      startCleanupJobs();
     });
   }
 }
