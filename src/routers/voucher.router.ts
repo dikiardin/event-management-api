@@ -22,6 +22,8 @@ class VoucherRouter {
       verifyRole([RoleType.ORGANIZER]),
       this.voucherController.createVoucher
     );
+
+    this.route.get("/event/:event_id", VoucherController.getVouchersByEvent);
   }
 
   public getRouter(): Router {

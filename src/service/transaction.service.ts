@@ -139,20 +139,52 @@ export class TransactionService {
   }
 
   // upload payment proof
-  public static async uploadPaymentProofService(
-    transactionId: number,
-    file: Express.Multer.File,
-    userId: number
-  ) {
-    if (!file) throw { status: 400, message: "No file provided" };
-    const result = await cloudinaryUpload(file);
+  // public static async uploadPaymentProofService(
+  //   transactionId: number,
+  //   file: Express.Multer.File,
+  //   userId: number
+  // ) {
+  //   if (!file) throw { status: 400, message: "No file provided" };
+  //   const result = await cloudinaryUpload(file);
 
-    return TransactionRepository.uploadPaymentProofRepo(
-      transactionId,
-      result.secure_url,
-      userId
-    );
-  }
+  //   return TransactionRepository.uploadPaymentProofRepo(
+  //     transactionId,
+  //     result.secure_url,
+  //     userId
+  //   );
+  // }
+
+  public static async uploadPaymentProofService(
+  transactionId: number,
+  file: Express.Multer.File,
+  userId: number
+) {
+  if (!file) throw { status: 400, message: "No file provided" };
+
+  // Fetch the transaction first
+  const transaction = await prisma.transactions.findUnique({
+    where: { id: transactionId },
+  });
+
+  if (!transaction) throw { status: 404, message: "Transaction not found" };
+  if (transaction.user_id !== userId)
+    throw { status: 403, message: "Unauthorized" };
+
+  // Check if transaction is expired
+  const now = new Date();
+  if (transaction.transaction_expired < now)
+    throw { status: 400, message: "Transaction has expired" };
+
+  // Upload file to cloudinary
+  const result = await cloudinaryUpload(file);
+
+  // Update transaction with payment proof
+  return TransactionRepository.uploadPaymentProofRepo(
+    transactionId,
+    result.secure_url,
+    userId
+  );
+}
 
   // rollback seats
   private static async rollbackSeatsAndTickets(transactionId: number) {
@@ -213,6 +245,14 @@ export class TransactionService {
         status: $Enums.PaymentStatusType.CANCELLED,
       });
     }
+  }
+
+  public static async getTransactionByIdService(id: number) {
+    const transaction = await TransactionRepository.getTransactionByIdRepo(id);
+    if (!transaction) {
+      throw { status: 404, message: "Transaction not found" };
+    }
+    return transaction;
   }
 
   public static async getTransactionsByUserIdService(userId: number) {

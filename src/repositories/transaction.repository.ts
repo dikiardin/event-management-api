@@ -43,10 +43,15 @@ export class TransactionRepository {
     });
   }
 
-  public static async getTransactionByIdRepo(id: number) {
+public static async getTransactionByIdRepo(id: number) {
     return prisma.transactions.findUnique({
       where: { id },
-      include: { tickets: true, user: true, voucher: true, coupon: true },
+      include: {
+        tickets: true,   
+        user: true,      
+        voucher: true,   
+        coupon: true,    
+      },
     });
   }
 
