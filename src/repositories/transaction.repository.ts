@@ -25,6 +25,7 @@ export class TransactionRepository {
     discount_coupon?: number;
     total_price: number;
     transaction_expired: Date;
+    status: string;
   }) {
     return prisma.transactions.create({
       data: {
@@ -37,7 +38,7 @@ export class TransactionRepository {
         discount_coupon: data.discount_coupon ?? 0,
         total_price: data.total_price,
         transaction_expired: data.transaction_expired,
-        status: PaymentStatusType.WAITING_PAYMENT,
+        status: data.status as PaymentStatusType,
       },
     });
   }

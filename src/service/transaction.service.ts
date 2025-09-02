@@ -3,6 +3,16 @@ import { TransactionRepository } from "../repositories/transaction.repository";
 import { $Enums } from "../generated/prisma";
 import { cloudinaryUpload } from "../config/cloudinary";
 
+
+const PaymentStatusType = {
+  WAITING_PAYMENT : "WAITING_PAYMENT",
+  WAITING_CONFIRMATION : "WAITING_CONFIRMATION",
+  SUCCESS : "SUCCESS",
+  REJECTED : "REJECTED",
+  EXPIRED : "EXPIRED",
+  CANCELLED : "CANCELLED",
+}
+
 export class TransactionService {
   // create new transaction
   public static async createTransactionService(
@@ -83,6 +93,12 @@ export class TransactionService {
     const transaction_expired = new Date();
     transaction_expired.setHours(transaction_expired.getHours() + 2);
 
+    // status if transaction = 0
+    const status =
+      totalPrice <= 0
+        ? PaymentStatusType.SUCCESS
+        : PaymentStatusType.WAITING_PAYMENT;
+
     // create transaction
     const transaction = await TransactionRepository.createTransactionRepo({
       user_id: userId,
@@ -94,6 +110,7 @@ export class TransactionService {
       discount_coupon: discountCoupon,
       total_price: totalPrice,
       transaction_expired,
+      status
     });
 
     // remove coupon & points
@@ -328,6 +345,6 @@ export class TransactionService {
       }
     });
 
-    return stats;
-  }
+    return stats;
+  }
 }
