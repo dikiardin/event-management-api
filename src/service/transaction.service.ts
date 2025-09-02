@@ -3,16 +3,6 @@ import { TransactionRepository } from "../repositories/transaction.repository";
 import { $Enums } from "../generated/prisma";
 import { cloudinaryUpload } from "../config/cloudinary";
 
-
-const PaymentStatusType = {
-  WAITING_PAYMENT : "WAITING_PAYMENT",
-  WAITING_CONFIRMATION : "WAITING_CONFIRMATION",
-  SUCCESS : "SUCCESS",
-  REJECTED : "REJECTED",
-  EXPIRED : "EXPIRED",
-  CANCELLED : "CANCELLED",
-}
-
 export class TransactionService {
   // create new transaction
   public static async createTransactionService(
@@ -96,8 +86,8 @@ export class TransactionService {
     // status if transaction = 0
     const status =
       totalPrice <= 0
-        ? PaymentStatusType.SUCCESS
-        : PaymentStatusType.WAITING_PAYMENT;
+        ? $Enums.PaymentStatusType.SUCCESS
+        : $Enums.PaymentStatusType.WAITING_PAYMENT;
 
     // create transaction
     const transaction = await TransactionRepository.createTransactionRepo({
