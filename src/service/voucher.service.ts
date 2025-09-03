@@ -31,7 +31,18 @@ export class VoucherService {
         message: "Voucher end date must be after start date",
       };
 
-    return VoucherRepository.createVoucherRepo(eventId, data);
+    try {
+      return await VoucherRepository.createVoucherRepo(eventId, data);
+    } catch (err: any) {
+      // handle unique constraint error (P2002)
+      if (err.code === "P2002") {
+        throw {
+          status: 400,
+          message: "*voucher code already exists for this event",
+        };
+      }
+      throw err; // let global handler handle other errors
+    }
   }
 
   public static async getVouchersByEventId(eventId: number) {
@@ -43,7 +54,7 @@ export class VoucherService {
     const result = await prisma.voucher.deleteMany({
       where: {
         voucher_end_date: {
-          lt: new Date(), 
+          lt: new Date(),
         },
       },
     });
