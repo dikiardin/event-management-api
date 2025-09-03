@@ -23,6 +23,7 @@ export class TransactionRouter {
       verifyToken,
       this.transactionController.createTransaction
     );
+    // Routes with specific ID parameters - MUST BE BEFORE generic /:id route
     this.route.post(
       "/upload-proof/:id",
       verifyToken,
@@ -34,11 +35,27 @@ export class TransactionRouter {
       verifyToken,
       this.transactionController.cancelTransaction
     );
+
+    // New routes for organizer transaction management - MUST BE BEFORE /:id route
+    // Use /organizer/transactions to avoid conflict with /:id route
     this.route.get(
-      "/:id",
+      "/organizer/transactions",
       verifyToken,
-      TransactionController.getTransactionById
+      verifyRole([RoleType.ORGANIZER]),
+      this.transactionController.getOrganizerTransactions
     );
+
+    // Keep the old route for backward compatibility but redirect to new one
+    this.route.get(
+      "/organizer",
+      verifyToken,
+      verifyRole([RoleType.ORGANIZER]),
+      (req, res) => {
+        // Redirect to the new endpoint
+        res.redirect(307, "/transaction/organizer/transactions");
+      }
+    );
+
     this.route.get(
       "/user/:userId",
       verifyToken,
@@ -51,14 +68,6 @@ export class TransactionRouter {
       this.transactionController.getTransactionsByEventId
     );
 
-    // New routes for organizer transaction management
-    this.route.get(
-      "/organizer",
-      verifyToken,
-      verifyRole([RoleType.ORGANIZER]),
-      this.transactionController.getOrganizerTransactions
-    );
-
     // Alternative route for debugging and testing
     this.route.get(
       "/organizer/simple",
@@ -67,6 +76,7 @@ export class TransactionRouter {
       this.transactionController.getOrganizerTransactionsSimple
     );
 
+    // All routes with specific parameters MUST BE BEFORE generic /:id route
     this.route.get(
       "/organizer/status/:status",
       verifyToken,
@@ -100,6 +110,12 @@ export class TransactionRouter {
       verifyToken,
       verifyRole([RoleType.ORGANIZER]),
       this.transactionController.getOrganizerTransactionStats
+    );
+
+    this.route.get(
+      "/:id",
+      verifyToken,
+      TransactionController.getTransactionById
     );
   }
 
