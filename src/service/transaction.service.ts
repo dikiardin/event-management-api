@@ -138,22 +138,6 @@ export class TransactionService {
     return transaction;
   }
 
-  // upload payment proof
-  // public static async uploadPaymentProofService(
-  //   transactionId: number,
-  //   file: Express.Multer.File,
-  //   userId: number
-  // ) {
-  //   if (!file) throw { status: 400, message: "No file provided" };
-  //   const result = await cloudinaryUpload(file);
-
-  //   return TransactionRepository.uploadPaymentProofRepo(
-  //     transactionId,
-  //     result.secure_url,
-  //     userId
-  //   );
-  // }
-
   public static async uploadPaymentProofService(
   transactionId: number,
   file: Express.Multer.File,

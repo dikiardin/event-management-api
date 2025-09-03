@@ -43,14 +43,22 @@ export class TransactionRepository {
     });
   }
 
-public static async getTransactionByIdRepo(id: number) {
+  public static async getTransactionByIdRepo(id: number) {
     return prisma.transactions.findUnique({
       where: { id },
       include: {
-        tickets: true,   
-        user: true,      
-        voucher: true,   
-        coupon: true,    
+        user: true,
+        voucher: true,
+        coupon: true,
+        tickets: {
+          include: {
+            ticket: {
+              include: {
+                event: true,
+              },
+            },
+          },
+        },
       },
     });
   }
@@ -137,12 +145,16 @@ public static async getTransactionByIdRepo(id: number) {
 
   public static async getTransactionsByUserIdRepo(userId: number) {
     return prisma.transactions.findMany({
-      where: { user_id: userId },
+      where: { user_id: Number(userId) },
       include: {
+        user: true,
         tickets: { include: { ticket: { include: { event: true } } } },
         coupon: true,
         voucher: true,
         point: true,
+      },
+      orderBy: {
+        transaction_date_time: "desc", // newest first
       },
     });
   }
