@@ -9,6 +9,7 @@ import {
   findUserById,
   updateUser,
 } from "../repositories/accounts.repository";
+import { createEmailVerificationEmail } from "../utils/emailTemplates";
 
 export const registerService = async (data: {
   email: string;
@@ -70,13 +71,19 @@ export const registerService = async (data: {
   const token = createToken({ id: updatedUser.id }, "1h");
   const link = `http://localhost:3000/verify/${token}`;
 
+  // Generate email HTML using the new template
+  const emailHtml = createEmailVerificationEmail({
+    username: updatedUser.username,
+    email: updatedUser.email,
+    verificationToken: token,
+    type: "signup",
+    baseUrl: "http://localhost:3000",
+  });
+
   await transport.sendMail({
     to: email,
-    subject: "Verify your account",
-    html: `<p>Hi ${username},</p>
-           <p>Please verify your account:</p>
-           <a href="${link}" target="_blank">Verify Account</a>
-           <p>This link will expire in <strong>1 hour</strong></p>`,
+    subject: "🎉 Account Verification Required - TicketNest",
+    html: emailHtml,
   });
 
   return updatedUser;

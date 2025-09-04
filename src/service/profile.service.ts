@@ -10,6 +10,7 @@ import bcrypt from "bcrypt";
 import { transport } from "../config/nodemailer";
 import { createToken } from "../utils/createToken";
 import { decodeToken } from "../middleware/verifyToken";
+import { createEmailVerificationEmail } from "../utils/emailTemplates";
 
 // Update profil (username, dsb)
 export const updateProfileService = async (
@@ -90,16 +91,20 @@ export const changeEmailService = async (userId: number, newEmail: string) => {
 
   const link = `http://localhost:3000/verify-email-change/${token}`;
 
+  // Generate email HTML using the new template
+  const emailHtml = createEmailVerificationEmail({
+    username: user.username,
+    email: newEmail,
+    verificationToken: token,
+    type: "email-change",
+    baseUrl: "http://localhost:3000",
+  });
+
   // Kirim email verifikasi ke email baru
   await transport.sendMail({
     to: newEmail,
-    subject: "Verify your new email address",
-    html: `<p>Hi ${user.username},</p>
-           <p>You requested to change your email address to: <strong>${newEmail}</strong></p>
-           <p>Please click the link below to verify this change:</p>
-           <a href="${link}" target="_blank">Verify Email Change</a>
-           <p>This link will expire in <strong>1 hour</strong></p>
-           <p>If you didn't request this change, please ignore this email.</p>`,
+    subject: "✉️ Email Change Verification - TicketNest",
+    html: emailHtml,
   });
 
   return {

@@ -369,3 +369,245 @@ export const createTransactionRejectedEmail = (
     </html>
   `;
 };
+
+export interface EmailVerificationData {
+  username: string;
+  email: string;
+  verificationToken: string;
+  type: "signup" | "email-change";
+  baseUrl?: string;
+}
+
+export const createEmailVerificationEmail = (
+  data: EmailVerificationData
+): string => {
+  const {
+    username,
+    email,
+    verificationToken,
+    type,
+    baseUrl = "http://localhost:3000",
+  } = data;
+
+  const isSignup = type === "signup";
+  const verificationUrl = `${baseUrl}/verify/${verificationToken}`;
+  const emailChangeUrl = `${baseUrl}/verify-email-change/${verificationToken}`;
+
+  const actionUrl = isSignup ? verificationUrl : emailChangeUrl;
+  const actionText = isSignup ? "Verify Account" : "Verify New Email";
+  const headerColor = isSignup ? "#4CAF50" : "#2196F3";
+  const headerEmoji = isSignup ? "🎉" : "✉️";
+  const headerTitle = isSignup
+    ? "Account Verification Required!"
+    : "Email Change Verification!";
+  const headerSubtitle = isSignup
+    ? "Complete your registration"
+    : "Confirm your new email";
+  const mainIcon = isSignup ? "📧" : "🔐";
+  const greeting = isSignup
+    ? "Please verify your account to get started:"
+    : "Please verify your new email to complete the change:";
+
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Email Verification - TicketNest</title>
+      <style>
+        body {
+          font-family: Arial, sans-serif;
+          line-height: 1.6;
+          color: #333;
+          max-width: 600px;
+          margin: 0 auto;
+          padding: 20px;
+        }
+        .header {
+          background-color: ${headerColor};
+          color: white;
+          padding: 30px 20px;
+          text-align: center;
+          border-radius: 12px 12px 0 0;
+        }
+        .header h1 {
+          margin: 0;
+          font-size: 28px;
+          font-weight: 600;
+        }
+        .header p {
+          margin: 10px 0 0 0;
+          opacity: 0.9;
+          font-size: 18px;
+        }
+        .content {
+          background-color: #f9f9f9;
+          padding: 40px 30px;
+          border-radius: 0 0 12px 12px;
+        }
+        .verification-icon {
+          font-size: 64px;
+          text-align: center;
+          margin-bottom: 30px;
+        }
+        .user-info {
+          background-color: white;
+          padding: 25px;
+          border-radius: 12px;
+          margin: 25px 0;
+          border-left: 6px solid ${headerColor};
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        .user-info h3 {
+          margin: 0 0 15px 0;
+          color: ${headerColor};
+          font-size: 20px;
+        }
+        .user-info p {
+          margin: 8px 0;
+          font-size: 16px;
+        }
+        .verify-button {
+          display: inline-block;
+          background-color: ${headerColor};
+          color: white;
+          padding: 18px 36px;
+          text-decoration: none;
+          border-radius: 12px;
+          font-weight: 600;
+          font-size: 18px;
+          margin: 30px 0;
+          text-align: center;
+          transition: all 0.3s ease;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+        .verify-button:hover {
+          background-color: ${isSignup ? "#45a049" : "#1976D2"};
+          transform: translateY(-2px);
+          box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+        }
+        .button-container {
+          text-align: center;
+        }
+        .expiry-note {
+          background-color: #fff3cd;
+          border: 1px solid #ffeaa7;
+          color: #856404;
+          padding: 20px;
+          border-radius: 12px;
+          margin: 25px 0;
+          text-align: center;
+        }
+        .expiry-note h4 {
+          margin: 0 0 10px 0;
+          color: #856404;
+          font-size: 18px;
+        }
+        .expiry-note p {
+          margin: 0;
+          font-size: 16px;
+        }
+        .security-note {
+          background-color: #e8f5e8;
+          border: 1px solid #c8e6c9;
+          color: #2e7d32;
+          padding: 20px;
+          border-radius: 12px;
+          margin: 25px 0;
+        }
+        .security-note h4 {
+          margin: 0 0 10px 0;
+          color: #2e7d32;
+          font-size: 18px;
+        }
+        .security-note p {
+          margin: 0;
+          font-size: 16px;
+        }
+        .footer {
+          text-align: center;
+          margin-top: 40px;
+          padding-top: 30px;
+          border-top: 1px solid #e9ecef;
+          color: #6c757d;
+          font-size: 14px;
+        }
+        .footer a {
+          color: ${headerColor};
+          text-decoration: none;
+        }
+        .footer a:hover {
+          text-decoration: underline;
+        }
+        .highlight {
+          background-color: white;
+          padding: 20px;
+          border-radius: 12px;
+          margin: 20px 0;
+          border: 2px solid ${headerColor};
+          text-align: center;
+        }
+        .highlight h3 {
+          margin: 0 0 15px 0;
+          color: ${headerColor};
+          font-size: 20px;
+        }
+        .highlight p {
+          margin: 0;
+          font-size: 16px;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="header">
+        <h1>${headerEmoji} ${headerTitle}</h1>
+        <p>${headerSubtitle}</p>
+      </div>
+      
+      <div class="content">
+        <div class="verification-icon">${mainIcon}</div>
+        
+        <p>Dear <strong>${username}</strong>,</p>
+        
+        <p>${greeting}</p>
+        
+        <div class="user-info">
+          <h3>📋 Account Information</h3>
+          <p><strong>Username:</strong> ${username}</p>
+          <p><strong>Email:</strong> ${email}</p>
+          <p><strong>Verification Type:</strong> ${
+            isSignup ? "New Account Registration" : "Email Address Change"
+          }</p>
+        </div>
+        
+        <div class="highlight">
+          <h3>🚀 Ready to Get Started?</h3>
+          <p>Click the button below to complete your verification process</p>
+        </div>
+        
+        <div class="button-container">
+          <a href="${actionUrl}" class="verify-button">
+            ${actionText}
+          </a>
+        </div>
+        
+        <div class="expiry-note">
+          <h4>⏰ Important Note</h4>
+          <p>This verification link will expire in <strong>1 hour</strong></p>
+        </div>
+        
+        <div class="security-note">
+          <h4>🔒 Security Information</h4>
+          <p>This email was sent to verify your identity. Never share this verification link with anyone.</p>
+        </div>
+        
+        <div class="footer">
+          <p>Need help? <a href="mailto:support@ticketnest.com">Contact our support team</a></p>
+          <p>© 2024 TicketNest. All rights reserved.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+};
