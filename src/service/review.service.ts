@@ -1,4 +1,5 @@
 import { ReviewRepo } from "../repositories/review.repository";
+import { CustomError } from "../utils/customError";
 
 export class ReviewService {
   public static async createReview(
@@ -9,7 +10,7 @@ export class ReviewService {
   ) {
     // check rating must between 1 to 5
     if (rating < 1 || rating > 5) {
-      throw new Error("Rating must be between 1 and 5.");
+      throw new CustomError("Rating must be between 1 and 5.", 400);
     }
 
     // check if user has attended (success transaction + event finished)
@@ -19,18 +20,24 @@ export class ReviewService {
     );
 
     if (!transaction) {
-      throw new Error("You must attend the event before leaving a review.");
+      throw new CustomError(
+        "You must attend the event before leaving a review.",
+        403
+      );
     }
 
     const firstTicket = transaction.tickets?.[0];
     if (!firstTicket || !firstTicket.ticket?.event) {
-      throw new Error("Event data not found for this transaction.");
+      throw new CustomError("Event data not found for this transaction.", 404);
     }
 
     const event = firstTicket.ticket.event;
 
     if (new Date(event.event_end_date) > new Date()) {
-      throw new Error("You can only review after the event has ended.");
+      throw new CustomError(
+        "You can only review after the event has ended.",
+        400
+      );
     }
 
     // check if review already exists
@@ -39,7 +46,7 @@ export class ReviewService {
       event_id
     );
     if (existingReview) {
-      throw new Error("You have already reviewed this event.");
+      throw new CustomError("You have already reviewed this event.", 409);
     }
 
     // create new review
