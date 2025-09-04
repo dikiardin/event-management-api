@@ -26,6 +26,11 @@ export const createEventService = async (user: any, data: any) => {
     throw { status: 400, message: "Event must have at least one ticket type" };
   }
 
+    const existingEvent = await findEventByNameRepo(data.event_name);
+  if (existingEvent) {
+    throw { status: 409, message: "Event name has already been registered" };
+  }
+
   return createEventRepo(user.id, data);
 };
 
