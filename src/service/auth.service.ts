@@ -69,7 +69,7 @@ export const registerService = async (data: {
 
   // token verifikasi email
   const token = createToken({ id: updatedUser.id }, "1h");
-  const link = `http://localhost:3000/verify/${token}`;
+  const link = `https://event-management-app-ivory.vercel.app/verify/${token}`;
 
   // Generate email HTML using the new template
   const emailHtml = createEmailVerificationEmail({
@@ -77,7 +77,7 @@ export const registerService = async (data: {
     email: updatedUser.email,
     verificationToken: token,
     type: "signup",
-    baseUrl: "http://localhost:3000",
+    baseUrl: "https://event-management-app-ivory.vercel.app",
   });
 
   await transport.sendMail({

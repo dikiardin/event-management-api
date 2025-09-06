@@ -162,7 +162,7 @@ export const createTransactionAcceptedEmail = (
         
         <div class="footer">
           <p>If you have any questions, please contact our support team.</p>
-          <p>© 2024 TicketNest. All rights reserved.</p>
+          <p>© 2025 TicketNest. All rights reserved.</p>
         </div>
       </div>
     </body>
@@ -362,7 +362,7 @@ export const createTransactionRejectedEmail = (
         
         <div class="footer">
           <p>If you have any questions, please contact our support team.</p>
-          <p>© 2024 TicketNest. All rights reserved.</p>
+          <p>© 2025 TicketNest. All rights reserved.</p>
         </div>
       </div>
     </body>
@@ -386,7 +386,7 @@ export const createEmailVerificationEmail = (
     email,
     verificationToken,
     type,
-    baseUrl = "http://localhost:3000",
+    baseUrl = "https://event-management-app-ivory.vercel.app",
   } = data;
 
   const isSignup = type === "signup";
@@ -587,7 +587,7 @@ export const createEmailVerificationEmail = (
         </div>
         
         <div class="button-container">
-          <a href="${actionUrl}" class="verify-button">
+          <a href="${actionUrl}" target="_blank" class="verify-button">
             ${actionText}
           </a>
         </div>
@@ -604,7 +604,7 @@ export const createEmailVerificationEmail = (
         
         <div class="footer">
           <p>Need help? <a href="mailto:support@ticketnest.com">Contact our support team</a></p>
-          <p>© 2024 TicketNest. All rights reserved.</p>
+          <p>© 2025 TicketNest. All rights reserved.</p>
         </div>
       </div>
     </body>
