@@ -130,7 +130,6 @@ export const createTransactionAcceptedEmail = (
           <p><strong>Event:</strong> ${eventName}</p>
           <p><strong>Location:</strong> ${eventLocation}</p>
           <p><strong>Date:</strong> ${eventDate}</p>
-          <p><strong>Transaction ID:</strong> #${transactionId}</p>
         </div>
         
         <div class="ticket-details">
@@ -303,7 +302,6 @@ export const createTransactionRejectedEmail = (
           <p><strong>Event:</strong> ${eventName}</p>
           <p><strong>Location:</strong> ${eventLocation}</p>
           <p><strong>Date:</strong> ${eventDate}</p>
-          <p><strong>Transaction ID:</strong> #${transactionId}</p>
         </div>
         
         <div class="ticket-details">
@@ -347,7 +345,6 @@ export const createTransactionRejectedEmail = (
                    }" has been restored</li>`
                  : ""
              }
-            <li>✅ Any payment made will be refunded to your original payment method within 3-5 business days</li>
           </ul>
         </div>
         
