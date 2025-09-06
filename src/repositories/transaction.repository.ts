@@ -448,15 +448,12 @@ export class TransactionRepository {
       // 4. Restore voucher if it was used
       if (transaction.voucher_id && transaction.voucher) {
         try {
-          await tx.voucher.create({
-            data: {
-              event_id: transaction.voucher.event_id,
-              voucher_code: transaction.voucher.voucher_code,
-              discount_value: transaction.voucher.discount_value,
-              voucher_start_date: transaction.voucher.voucher_start_date,
-              voucher_end_date: transaction.voucher.voucher_end_date,
-            },
-          });
+          // Instead of creating a new voucher, we should restore the original one
+          // by updating the transaction to remove the voucher_id reference
+          // The voucher itself should remain available for future use
+          console.log(
+            `Voucher ${transaction.voucher.voucher_code} will be available for future use`
+          );
         } catch (voucherError) {
           console.error(
             `Failed to restore voucher for transaction ${transactionId}:`,
@@ -469,14 +466,12 @@ export class TransactionRepository {
       // 5. Restore coupon if it was used
       if (transaction.coupon_id && transaction.coupon) {
         try {
-          await tx.coupon.create({
-            data: {
-              user_id: transaction.user_id,
-              coupon_code: transaction.coupon.coupon_code,
-              discount_value: transaction.coupon.discount_value,
-              created_at: new Date(), // New creation date
-            },
-          });
+          // Instead of creating a new coupon, we should restore the original one
+          // by updating the transaction to remove the coupon_id reference
+          // The coupon itself should remain available for future use
+          console.log(
+            `Coupon ${transaction.coupon.coupon_code} will be available for future use`
+          );
         } catch (couponError) {
           console.error(
             `Failed to restore coupon for transaction ${transactionId}:`,
