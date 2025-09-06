@@ -29,7 +29,7 @@ class App {
   private configure(): void {
     this.app.use(
       cors({
-        origin: ["http://localhost:3000", "http://127.0.0.1:3000"],
+        origin: ["http://localhost:3000", "http://127.0.0.1:3000", "https://event-management-app-ivory.vercel.app"],
         methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
         credentials: false,
         allowedHeaders: ["Content-Type", "Authorization", "Accept"],
