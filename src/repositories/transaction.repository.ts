@@ -414,38 +414,62 @@ export class TransactionRepository {
 
       // 3. Restore points if they were used
       if (transaction.point_id && transaction.points_used > 0) {
-        await tx.point.create({
-          data: {
-            user_id: transaction.user_id,
-            point_balance: transaction.points_used,
-            point_expired: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000), // 90 days from now
-          },
-        });
+        try {
+          await tx.point.create({
+            data: {
+              user_id: transaction.user_id,
+              point_balance: transaction.points_used,
+              point_expired: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000), // 90 days from now
+            },
+          });
+        } catch (pointError) {
+          console.error(
+            `Failed to restore points for transaction ${transactionId}:`,
+            pointError
+          );
+          // Don't fail the entire transaction if point restoration fails
+        }
       }
 
       // 4. Restore voucher if it was used
       if (transaction.voucher_id && transaction.voucher) {
-        await tx.voucher.create({
-          data: {
-            event_id: transaction.voucher.event_id,
-            voucher_code: transaction.voucher.voucher_code,
-            discount_value: transaction.voucher.discount_value,
-            voucher_start_date: transaction.voucher.voucher_start_date,
-            voucher_end_date: transaction.voucher.voucher_end_date,
-          },
-        });
+        try {
+          await tx.voucher.create({
+            data: {
+              event_id: transaction.voucher.event_id,
+              voucher_code: transaction.voucher.voucher_code,
+              discount_value: transaction.voucher.discount_value,
+              voucher_start_date: transaction.voucher.voucher_start_date,
+              voucher_end_date: transaction.voucher.voucher_end_date,
+            },
+          });
+        } catch (voucherError) {
+          console.error(
+            `Failed to restore voucher for transaction ${transactionId}:`,
+            voucherError
+          );
+          // Don't fail the entire transaction if voucher restoration fails
+        }
       }
 
       // 5. Restore coupon if it was used
       if (transaction.coupon_id && transaction.coupon) {
-        await tx.coupon.create({
-          data: {
-            user_id: transaction.user_id,
-            coupon_code: transaction.coupon.coupon_code,
-            discount_value: transaction.coupon.discount_value,
-            created_at: new Date(), // New creation date
-          },
-        });
+        try {
+          await tx.coupon.create({
+            data: {
+              user_id: transaction.user_id,
+              coupon_code: transaction.coupon.coupon_code,
+              discount_value: transaction.coupon.discount_value,
+              created_at: new Date(), // New creation date
+            },
+          });
+        } catch (couponError) {
+          console.error(
+            `Failed to restore coupon for transaction ${transactionId}:`,
+            couponError
+          );
+          // Don't fail the entire transaction if coupon restoration fails
+        }
       }
 
       return updatedTransaction;

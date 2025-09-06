@@ -312,6 +312,7 @@ export class TransactionService {
           `Failed to send acceptance email for transaction ${transactionId}:`,
           emailError
         );
+        // Don't throw the error - email failure should not prevent transaction acceptance
       }
 
       return transaction;
@@ -360,6 +361,7 @@ export class TransactionService {
           `Failed to send rejection email for transaction ${transactionId}:`,
           emailError
         );
+        // Don't throw the error - email failure should not prevent transaction rejection
       }
 
       return transaction;
