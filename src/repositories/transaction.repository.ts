@@ -261,7 +261,6 @@ export class TransactionRepository {
         JOIN "Event" e ON tk.event_id = e.id
         JOIN "User" u ON t.user_id = u.id
         WHERE e.event_organizer_id = ${organizerId}
-          AND t.status = 'WAITING_CONFIRMATION'
         ORDER BY t.transaction_date_time DESC
       `;
 
@@ -412,74 +411,30 @@ export class TransactionRepository {
       // 2. Restore seats and ticket quantities
       for (const ticketTransaction of transaction.tickets) {
         const ticket = ticketTransaction.ticket;
-
-        // Restore ticket available quantity
-        await tx.ticket.update({
-          where: { id: ticket.id },
-          data: { available_qty: { increment: ticketTransaction.qty } },
-        });
-
-        // Restore event available seats
-        await tx.event.update({
-          where: { id: ticket.event_id },
-          data: { available_seats: { increment: ticketTransaction.qty } },
-        });
-      }
-
-      // 3. Restore points if they were used
-      if (transaction.point_id && transaction.points_used > 0) {
         try {
-          await tx.point.create({
-            data: {
-              user_id: transaction.user_id,
-              point_balance: transaction.points_used,
-              point_expired: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000), // 90 days from now
-            },
+          // Restore ticket available quantity
+          await tx.ticket.update({
+            where: { id: ticket.id },
+            data: { available_qty: { increment: ticketTransaction.qty } },
           });
-        } catch (pointError) {
+
+          // Restore event available seats
+          await tx.event.update({
+            where: { id: ticket.event_id },
+            data: { available_seats: { increment: ticketTransaction.qty } },
+          });
+        } catch (seatError) {
           console.error(
-            `Failed to restore points for transaction ${transactionId}:`,
-            pointError
+            `Failed to restore seats for transaction ${transactionId}:`,
+            seatError
           );
-          // Don't fail the entire transaction if point restoration fails
+          // Don't fail the entire transaction if seat restoration fails
         }
       }
 
-      // 4. Restore voucher if it was used
-      if (transaction.voucher_id && transaction.voucher) {
-        try {
-          // Instead of creating a new voucher, we should restore the original one
-          // by updating the transaction to remove the voucher_id reference
-          // The voucher itself should remain available for future use
-          console.log(
-            `Voucher ${transaction.voucher.voucher_code} will be available for future use`
-          );
-        } catch (voucherError) {
-          console.error(
-            `Failed to restore voucher for transaction ${transactionId}:`,
-            voucherError
-          );
-          // Don't fail the entire transaction if voucher restoration fails
-        }
-      }
-
-      // 5. Restore coupon if it was used
-      if (transaction.coupon_id && transaction.coupon) {
-        try {
-          // Instead of creating a new coupon, we should restore the original one
-          // by updating the transaction to remove the coupon_id reference
-          // The coupon itself should remain available for future use
-          console.log(
-            `Coupon ${transaction.coupon.coupon_code} will be available for future use`
-          );
-        } catch (couponError) {
-          console.error(
-            `Failed to restore coupon for transaction ${transactionId}:`,
-            couponError
-          );
-          // Don't fail the entire transaction if coupon restoration fails
-        }
-      }
+      // 3. Points and coupons are consumed and not restored on rejection
+      // 4. Vouchers remain available for future use
+      // (No restoration logic needed for points, coupons, or vouchers)
 
       return updatedTransaction;
     });
