@@ -233,7 +233,20 @@ export class TransactionRepository {
     try {
       const transactions = await prisma.$queryRaw`
         SELECT DISTINCT 
-          t.*,
+          t.id,
+          t.user_id,
+          t.coupon_id,
+          t.voucher_id,
+          t.point_id,
+          t.status,
+          t.points_used,
+          t.discount_voucher,
+          t.discount_coupon,
+          t.total_price,
+          t.transaction_date_time,
+          t.transaction_expired,
+          t.is_accepted,
+          t.payment_proof_url,
           u.username,
           u.email,
           tt.qty,
@@ -248,6 +261,7 @@ export class TransactionRepository {
         JOIN "Event" e ON tk.event_id = e.id
         JOIN "User" u ON t.user_id = u.id
         WHERE e.event_organizer_id = ${organizerId}
+          AND t.status = 'WAITING_CONFIRMATION'
         ORDER BY t.transaction_date_time DESC
       `;
 
