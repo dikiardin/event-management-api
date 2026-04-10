@@ -178,8 +178,14 @@ export class TransactionRepository {
   // New methods for organizer transaction management
   public static async getOrganizerTransactionsRepo(organizerId: number) {
     try {
+      // organizerId here is actually the user ID - need to find the EventOrganizer record
+      const organizer = await prisma.eventOrganizer.findUnique({
+        where: { user_id: organizerId },
+      });
+      if (!organizer) return [];
+
       const organizerEvents = await prisma.event.findMany({
-        where: { event_organizer_id: organizerId },
+        where: { event_organizer_id: organizer.id },
         select: { id: true },
       });
 
@@ -254,13 +260,15 @@ export class TransactionRepository {
           tk.ticket_type,
           tk.price,
           e.event_name,
-          e.event_location
+          e.event_location,
+          e.event_start_date
         FROM "Transactions" t
         JOIN "TransactionTicket" tt ON t.id = tt.transaction_id
         JOIN "Ticket" tk ON tt.ticket_id = tk.id
         JOIN "Event" e ON tk.event_id = e.id
+        JOIN "EventOrganizer" eo ON e.event_organizer_id = eo.id
         JOIN "User" u ON t.user_id = u.id
-        WHERE e.event_organizer_id = ${organizerId}
+        WHERE eo.user_id = ${organizerId}
         ORDER BY t.transaction_date_time DESC
       `;
 
@@ -282,7 +290,9 @@ export class TransactionRepository {
           some: {
             ticket: {
               event: {
-                event_organizer_id: organizerId,
+                organizer: {
+                  user_id: organizerId,
+                },
               },
             },
           },
@@ -338,7 +348,7 @@ export class TransactionRepository {
       include: { organizer: true },
     });
 
-    if (!event || event.organizer.id !== organizerId) {
+    if (!event || Number(event.organizer.user_id) !== Number(organizerId)) {
       throw new Error("Unauthorized: You don't own this event");
     }
 
@@ -389,7 +399,7 @@ export class TransactionRepository {
       include: { organizer: true },
     });
 
-    if (!event || event.organizer.id !== organizerId) {
+    if (!event || event.organizer.user_id !== organizerId) {
       throw new Error("Unauthorized: You don't own this event");
     }
 
@@ -474,7 +484,7 @@ export class TransactionRepository {
       include: { organizer: true },
     });
 
-    if (!event || event.organizer.id !== organizerId) {
+    if (!event || event.organizer.user_id !== organizerId) {
       throw new Error("Unauthorized: You don't own this event");
     }
 

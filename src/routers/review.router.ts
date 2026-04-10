@@ -20,10 +20,9 @@ export class ReviewRouter {
       this.reviewController.createReview
     );
 
-    // get reviews by event id
+    // get reviews by event id (public - no auth required)
     this.route.get(
       "/event/:event_id",
-      verifyToken,
       ReviewController.getReviewsByEvent
     );
 

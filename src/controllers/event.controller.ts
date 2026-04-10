@@ -71,7 +71,30 @@ export default class EventController {
         .json({ success: false, message: "Invalid event_name" });
     }
 
-    const event = await getEventByNameService(decodedName); 
+    // Try exact match first (handles names with real hyphens)
+    let event = await getEventByNameService(decodedName).catch(() => null);
+
+    // If not found, try replacing hyphens with spaces (slug → name)
+    if (!event && decodedName.includes("-")) {
+      const nameWithSpaces = decodedName.replace(/-/g, " ");
+      event = await getEventByNameService(nameWithSpaces).catch(() => null);
+    }
+
+    // If still not found, try en-dash (–) variant (slugify converts – to -)
+    if (!event && decodedName.includes("-")) {
+      const nameWithEnDash = decodedName.replace(/-/g, "\u2013");
+      event = await getEventByNameService(nameWithEnDash).catch(() => null);
+    }
+
+    // If still not found, try em-dash (—) variant
+    if (!event && decodedName.includes("-")) {
+      const nameWithEmDash = decodedName.replace(/-/g, "\u2014");
+      event = await getEventByNameService(nameWithEmDash).catch(() => null);
+    }
+
+    if (!event) {
+      return res.status(404).json({ success: false, message: "Event not found" });
+    }
 
     return res.status(200).json({
       success: true,

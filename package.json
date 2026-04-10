@@ -6,7 +6,11 @@
   "scripts": {
     "dev": "nodemon src/index.ts",
     "start": "nodemon src/index.ts",
+    "seed": "npx prisma db seed",
     "postinstall": "prisma generate"
+  },
+  "prisma": {
+    "seed": "ts-node prisma/seed.ts"
   },
   "keywords": [],
   "author": "",

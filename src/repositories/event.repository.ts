@@ -208,7 +208,8 @@ export const findEventByIdRepo = async (id: number) => {
 };
 
 export const findEventByNameRepo = async (event_name: string) => {
-  return prisma.event.findFirst({
+  // First try exact match (case-insensitive)
+  const exactMatch = await prisma.event.findFirst({
     where: { event_name: { equals: event_name, mode: "insensitive" } },
     include: {
       organizer: true,
@@ -223,6 +224,32 @@ export const findEventByNameRepo = async (event_name: string) => {
       },
     },
   });
+
+  if (exactMatch) return exactMatch;
+
+  // Normalize input to a slug: lowercase, replace spaces/en-dashes/em-dashes with hyphens
+  const normalizeToSlug = (str: string) =>
+    str.toLowerCase().replace(/[\s\u2013\u2014]/g, "-").replace(/-+/g, "-");
+
+  const inputSlug = normalizeToSlug(event_name);
+
+  // Fetch all events and find the one whose name matches the slug
+  const allEvents = await prisma.event.findMany({
+    include: {
+      organizer: true,
+      vouchers: true,
+      reviews: true,
+      tickets: {
+        select: {
+          ticket_type: true,
+          price: true,
+          available_qty: true,
+        },
+      },
+    },
+  });
+
+  return allEvents.find((e) => normalizeToSlug(e.event_name) === inputSlug) || null;
 };
 
 export const updateEventRepo = async (id: number, data: any) => {

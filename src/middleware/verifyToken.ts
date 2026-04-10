@@ -20,7 +20,7 @@ export const verifyToken = (
     console.log("Extracted Token:", tokens);
 
     if (!tokens) {
-      throw { code: 401, message: "Unauthorized Token" };
+      throw { status: 401, message: "Unauthorized Token" };
     }
 
     const checkToken = decodeToken(tokens);
